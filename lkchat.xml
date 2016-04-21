@@ -20,7 +20,7 @@
         <!--labelline name="boardLine 1" margin="0 134 0 0" rect="0 0 440 2" layout_gravity="center top" visible="true" skin="None"/-->
         
         <!-- Verison -->
-        <richtext name="label_Version" rect="0 0 120 24" margin="15 65 0 0" layout_gravity="left top" format="{@st66b}%s{/}" param1="version"/>
+        <richtext name="label_Version" rect="0 0 120 24" margin="25 65 0 0" layout_gravity="left top" format="{@st66b}%s{/}" param1="version"/>
         <!-- Verison -->
 
         <!-- Tabs -->
