@@ -595,14 +595,6 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 
 		local w_ICON = GET_CHILD(w_CHATCONTROL, "iconPicture", "ui::CPicture");
 		w_ICON:ShowWindow(0);
-		--[[ ĳ���� ���� �츱�Ÿ� ����
-
-		if iconInfo == nil then
-			iconPicture:ShowWindow(0);
-		else
-			iconPicture:ShowWindow(0);
-		end
-		--]]
 	end
 
 	w_TIMEBOX:ShowWindow(g_Settings.TimeStamp);
