@@ -66,7 +66,8 @@ local g_UncheckedChannels = {
 };
 
 local g_RegExList = {
-	"%s*[3vw]*%s*[vw]*%s*[vw]*%s*[vw]*%s*[,%.]%s*.*%s*[,%.]%s*c%s*[o0]%s*[nm]%s*", -- greedy spam url detection, catches nearly any url by bot spammers
+	"[%s3vw]*[,%.]%s*.*%s*[,%.]%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection
+	--"%s*[3vw]*%s*[vw]*%s*[vw]*%s*[vw]*%s*[,%.%-]%-*%s*.*%s*%-*[,%.%-]%s*c%s*[o0]%s*[nm]%s*", -- greedy spam url detection, catches nearly any url by bot spammers
 	--"[3vw]%s-[vw]%s-[vw]%s-[vw]%s-[,%.]%s-.+%s-[,%.]%s-c%s-[o0]%s-[nm]", -- less greedy more precise url detection
 };
 
