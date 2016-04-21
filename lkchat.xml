@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- uiframe name="lkchat" x="0" y="0" width="32" height="32" create="open" -->
+<uiframe name="lkchat" x="0" y="0" width="450" height="600" create="open">
+    <draw drawnotitlebar="false" drawtitlebar="false"/>
+    <skin frameskin=" "/>
+    <frame title="LKChat" fullheight="true" fasthide="true" layout_gravity="left top" open="pip" margin="-570 0 0 0"/>
+    <input maxwidth="1280" moveable="false"/>
+    <layer layerlevel="80"/>
+    <option closebutton="false"/>
+    <script OpenScp="LKCHAT_ON_OPEN" CloseScp="LKCHAT_ON_CLOSE"/>
+    <sound opensound="window_open" closesound="window_close"/>
+    <controls>
+        <groupbox name="gboxLKChat" rect="0 0 450 990" margin="0 40 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" resizebyresolution="true" scrollbar="false" skin="test_frame_low"/>
+        <groupbox name="pipwin_top" rect="0 0 450 126" margin="0 0 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin="test_frame_top"/>
+        <richtext name="title" rect="0 0 100 30" margin="0 18 0 0" layout_gravity="center top" caption="{@st43}LKChat"/>
+        <button name="close" rect="0 0 44 44" margin="0 20 28 0" layout_gravity="right top" LBtnUpScp="CLOSE_UI" MouseOffAnim="btn_mouseoff" MouseOnAnim="btn_mouseover" clicksound="button_click_big" image="testclose_button" oversound="button_over" texttooltip="{@st59}친구 목록를 닫습니다{/}"/>
+        <picture name="question" rect="0 0 44 44" margin="27 20 0 0" layout_gravity="left top" MouseOffAnim="btn_mouseoff" MouseOnAnim="btn_mouseover" hittest="true" image="testquesten_button" oversound="button_over" texttooltip="{@st59b}LKChat{nl}{@st59s} - Chatbox with additonal user features!{nl} - Spambot Auto Blocking and Reporting!{nl} - Slash command support with addon developer hooks!{nl}{/}"/>
+
+		<!--<groupbox name="facebook" rect="0 0 410 790" margin="20 160 0 0" hittestbox="false" layout_gravity="left top" skin=" " draw="true" scrollbar="true" tabname="tab_facebook" resizebyresolution="true"/>-->
+        <!--labelline name="boardLine 1" margin="0 134 0 0" rect="0 0 440 2" layout_gravity="center top" visible="true" skin="None"/-->
+        
+        <!-- Verison -->
+        <richtext name="label_Version" rect="0 0 120 24" margin="15 65 0 0" layout_gravity="left top" format="{@st66b}%s{/}" param1="version"/>
+        <!-- Verison -->
+
+        <!-- Tabs -->
+		<tab name="itembox" rect="0 0 400 40" margin="45 90 0 0 " layout_gravity="left top" clicksound="inven_arrange" imagetype="false" itemspc="0" oversound="button_cursor_over_2" skin="tab2"/>
+		<tabitem name="tab_settings" parent="itembox" layout_gravity="left top" caption="{@st66b}Settings" skinspace="20" width="180"/>
+		<tabitem name="tab_combatlog" parent="itembox" layout_gravity="left top" caption="{@st66b}Combat Log" skinspace="20" width="180"/>
+        <!-- Tabs -->
+        
+        <!-- Tab: Settings -->
+		<groupbox name="gbox_settings" rect="0 0 430 870" margin="10 140 0 0" layout_gravity="left top" draw="false" hittestbox="false" resizebyresolution="true" scrollbar="true" skin="" tabname="tab_settings"/>
+        
+        
+        <groupbox name="gbox_ChatDisplay" parent="gbox_settings"rect="0 0 430 165" margin="0 0 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin=""/>
+        
+        <richtext name="label_ChatWindow" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="15 5 0 0" layout_gravity="left top" format="{@st43}Chat Window{/}"/>
+       
+        <richtext name="label_Theme" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="35 50 0 0" layout_gravity="left top" format="{@st66b}Theme{/}"/>
+        <droplist name="droplist_Theme" parent="gbox_ChatDisplay" rect="0 0 120 40" margin="35 75 0 0" layout_gravity="left top" SelectScp="LKCHAT_ON_CHANGE_THEME" clicksound="button_click_big_2" font="white_20_ol" frametextalign="left" oversound="button_over" skin="droplist_normal" textalign="left center" textoffset="10 0" visibleline="2"/>
+        <richtext name="label_FontSize" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="175 50 0 0" layout_gravity="left top" format="{@st66b}Font Size (%s){/}" param1="size"/>
+        <slidebar name="slider_FontSize" parent="gbox_ChatDisplay" rect="0 0 240 20" margin="175 75 0 0" layout_gravity="left top" SlideScp="LKCHAT_ON_SLIDE_FONTSIZE" clicksound="button_click_big_2" minlevel="10" maxlevel="25" oversound="button_over" skin="slidebar"/>
+        
+        <checkbox name="check_Timestamp" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 105 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_TIMESTAMP" caption="{@st66b}Show Timestamp{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_AutoHideInput" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 135 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_AUTOHIDECHAT" caption="{@st66b}Autohide Chat Input{/}" clicksound="button_click_big" oversound="button_over"/>
+        
+        <labelline name="boardline_endchatdisplay" parent="gbox_settings" rect="0 0 410 4" margin="20 175 0 0" layout_gravity="left top" skin="None" visible="true"/> 
+        
+        
+        
+        
+        <groupbox name="gbox_AntiSpam" parent="gbox_settings" rect="0 0 430 145" margin="0 185 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin=""/>
+        <richtext name="label_AntiSpam" parent="gbox_AntiSpam" rect="0 0 120 24" margin="15 5 0 0" layout_gravity="left top" format="{@st43}Anti-Spam Detection{/}"/>
+        <checkbox name="check_SpamDetection" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 45 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_SPAMDETECTION" caption="{@st66b}Enable Spam Detection{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_SpamNotice" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 75 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_SPAMNOTICE" caption="{@st66b}Enable Detection Messages{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_ReportSpamBots" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 105 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_AUTOREPORT" caption="{@st66b}Auto-Report Spambots{/}" clicksound="button_click_big" oversound="button_over"/>
+        
+        <labelline name="boardline_endantispam" parent="gbox_settings" rect="0 0 410 4" margin="20 330 0 0" layout_gravity="left top" skin="None" visible="true"/> 
+        
+        
+        <checkbox name="check_DisplayFPS" parent="gbox_settings" rect="0 0 120 30" margin="35 0 0 0" layout_gravity="left bottom" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_DISPLAYFPS" caption="{@st66b}Display FPS{/}" clicksound="button_click_big" oversound="button_over"/>
+         
+        <!-- Tab: Settings -->
+        
+        
+        <!-- Tab: Combat Log -->
+		<groupbox name="gbox_combatlog" rect="0 0 430 870" margin="10 140 0 0" layout_gravity="left top" draw="false" hittestbox="false" resizebyresolution="true" scrollbar="true" skin="" tabname="tab_combatlog"/>
+        
+        <richtext name="combatlog_NYI" parent="gbox_combatlog" rect="0 0 430 870" margin="0 0 0 0" layout_gravity="center center" format="{@st43}NYI{/}"/>
+        <!-- Tab: Combat Log -->
+        
+        
+    </controls>
+</uiframe>
