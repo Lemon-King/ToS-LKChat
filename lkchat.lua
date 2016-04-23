@@ -3,11 +3,12 @@ _G["LKChat"] = {};
 local LKChat = _G["LKChat"];
 local PRIVATE = {};
 
-LKChat._version = "Alpha v0.2";
+LKChat._version = "Alpha v0.3";
 
 -- Constants
 local TYPE_INT = 0;
 local TYPE_STRING = 1;
+local TYPE_BOOL = 2;
 
 local THEME_BUBBLE = 0;
 local THEME_LINE = 1;
@@ -66,8 +67,9 @@ local g_UncheckedChannels = {
 };
 
 local g_RegExList = {
-	"[%s3vw]*[,%.]%s*.*%s*[,%.]%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection
-	--"%s*[3vw]*%s*[vw]*%s*[vw]*%s*[vw]*%s*[,%.%-]%-*%s*.*%s*%-*[,%.%-]%s*c%s*[o0]%s*[nm]%s*", -- greedy spam url detection, catches nearly any url by bot spammers
+	--"[%s3vw]+[,%.%-]+%s*.*%s*[,%.%-]+%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection, modified [UNTESTED]
+	--"[%s3vw]*[,%.]%s*.*%s*[,%.]%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection
+	"[3vw]*%s*[vw]*%s*[vw]*%s*[vw]*%s*[,%.%-]+%s*.*%s*[,%.%-]+%s*c%s*[o0]%s*[nm]", -- greedy spam url detection, catches nearly any url by bot spammers
 	--"[3vw]%s-[vw]%s-[vw]%s-[vw]%s-[,%.]%s-.+%s-[,%.]%s-c%s-[o0]%s-[nm]", -- less greedy more precise url detection
 };
 
@@ -105,6 +107,7 @@ local g_Region;
 local g_PlayerFamilyName;
 local g_Settings = {};
 local g_RegisteredSlashCommands = {};
+local g_FriendWhiteList = {};
 
 -- global utility functions
 _G["printc"] = function(text)
@@ -124,24 +127,33 @@ end
 function LKCHAT_ON_INIT(addon, frame)
 	if not LKChat.hasLoaded then
 		LKChat.addon = addon;
-		LKChat.addon:RegisterMsg("GAME_START", "LKCHAT_ON_GAME_START");
+		addon:RegisterMsg("GAME_START", "LKCHAT_ON_GAME_START");
+		addon:RegisterOpenOnlyMsg("REMOVE_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
+		addon:RegisterOpenOnlyMsg("ADD_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
+		addon:RegisterOpenOnlyMsg("UPDATE_FRIEND_LIST", "LKCHAT_ON_UPDATE_FRIENDLIST");
+		
+		LKChat.OnInit(frame);
+		LKChat.SetAPIHooks();
 	end
 end
 
 function LKCHAT_ON_GAME_START(frame)
-	if not LKChat.hasLoaded then
-		LKChat.OnInit(frame);
-	end
+	-- Refresh on channel change or zone change
+	PRIVATE.DisplayFPS();
 end
 
 function LKCHAT_ON_OPEN(frame)
-	LKChat.RefreshSettings(frame);
-	
 	PRIVATE.SetVersion(frame);
+	
+	LKChat.RefreshSettings(frame);
 end
 
 function LKCHAT_ON_CLOSE(frame)
 
+end
+
+function LKCHAT_ON_UPDATE_FRIENDLIST()
+	PRIVATE.RefreshFriendList();
 end
 
 function LKCHAT_ON_CHANGE_THEME(frame, ctrl, str, num)
@@ -151,14 +163,16 @@ function LKCHAT_ON_CHANGE_THEME(frame, ctrl, str, num)
 	LKChat.SetConfigByKey("LKCHAT_THEME", themeIndex);
 end
 
+function LKCHAT_ON_RIGHTCLICK_CHAT(frame, chatCtrl)
+	LKChat.OnRightClickMessage(frame, chatCtrl);
+end
+
 function LKCHAT_ON_SLIDE_FONTSIZE(frame, ctrl, str, num)
-	local w_GROUP_SETTINGS = GET_CHILD(frame, "gbox_settings", "ui::CGroupBox");
-	local w_GROUP_CHATDISPLAY = GET_CHILD(w_GROUP_SETTINGS, "gbox_ChatDisplay", "ui::CGroupBox");
-	
 	local w_SLIDE_FONTSIZE = tolua.cast(ctrl, "ui::CSlideBar");
 	local size = w_SLIDE_FONTSIZE:GetLevel();
 	
-	local w_LABEL_FONTSIZE = GET_CHILD(w_GROUP_CHATDISPLAY, "label_FontSize", "ui::CRichText");
+	local w_PARENT = ctrl:GetParent();
+	local w_LABEL_FONTSIZE = GET_CHILD(w_PARENT, "label_FontSize", "ui::CRichText");
 	if w_LABEL_FONTSIZE then
 		w_LABEL_FONTSIZE:SetTextByKey("size", size);
 	end
@@ -220,13 +234,8 @@ function LKChat.OnInit(frame)
 
 	LKChat.RefreshSettings(frame);
 	
-	if not _G["DRAW_CHAT_MSG_ORIG"] then
-		_G["DRAW_CHAT_MSG_ORIG"] = _G["DRAW_CHAT_MSG"];
-	end
-    _G["DRAW_CHAT_MSG"] = LKChat.OnMessage;
 	--_G["SEND_POPUP_FRAME_CHAT"] = LKChat.OnInputMessage;
 
-	_G["UI_CHAT"] = LKChat.OnSendMessage;
 
 	LKChat.RegisterShowSlash();
 	--LKChat.RegisterSlashScript();
@@ -237,11 +246,22 @@ function LKChat.OnInit(frame)
 	printc(string.format("LKChat Loaded:{nl}Hello %s.", g_PlayerFamilyName));
 end
 
+function LKChat.SetAPIHooks()
+	_G["UI_CHAT"] = LKChat.OnSendMessage;
+	
+	if not _G["DRAW_CHAT_MSG_ORIG"] then
+		_G["DRAW_CHAT_MSG_ORIG"] = _G["DRAW_CHAT_MSG"];
+	end
+	_G["DRAW_CHAT_MSG"] = LKChat.OnMessage;
+end
+
 function LKChat.RefreshSettings(frame)
 	LKChat.RefreshAllStoredUserValues();
 	
 	LKChat.InitializeSettings(frame);
 	LKChat.InitializeCombatLog(frame);
+	
+	PRIVATE.RefreshFriendList();
 end
 
 function LKChat.SetConfigByKey(key, value)
@@ -269,6 +289,8 @@ function LKChat.RefreshAllStoredUserValues()
 		elseif setting.type == TYPE_STRING then
 			local value = config.GetConfig(key, setting.default);
 			g_Settings[setting.name] = value;
+		elseif setting.type == TYPE_BOOL then
+			-- TODO
 		end
 	end
 end
@@ -482,13 +504,36 @@ function LKChat.FilterMessage(text)
 	end
 end
 
+local g_RightClickMenu = {
+	
+	
+	
+};
+
+function LKChat.OnRightClickMessage(frame, chatCtrl)
+	local name = chatCtrl:GetUserValue("TARGET_NAME");
+	if g_PlayerFamilyName == name then
+		return nil;
+	end
+
+	local menu = ui.CreateContextMenu("CONTEXT_CHAT_RBTN", name, 0, 0, 170, 100);
+	ui.AddContextMenuItem(menu, ScpArgMsg("WHISPER"),		string.format("ui.WhisperTo('%s')", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("ReqAddFriend"),	string.format("friends.RequestRegister('%s')", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("PARTY_INVITE"),	string.format("PARTY_INVITE(\"%s\")", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("Report_AutoBot"),	string.format("REPORT_AUTOBOT_MSGBOX(\"%s\")", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("FriendBlock"),	string.format("CHAT_BLOCK_MSG('%s')", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("Cancel"),			"None");
+	
+	ui.OpenContextMenu(menu);
+end
+
+-- TODO: Refactor
 local ignoreUser = {};
 local activeGroupBoxes = {};	-- used with chat regeneration
 function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 	local w_MESSAGEBOX = LKChat.AddGroupbox(groupBoxName);
 	if not activeGroupBoxes[groupBoxName] then activeGroupBoxes[groupBoxName] = true end;
 
-	local top = 0;
 	local lineCount = w_MESSAGEBOX:GetLineCount();
 	local drawMessages = {};
 	for i = startIndex, size - 1 do
@@ -498,7 +543,7 @@ function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 			if not ignoreUser[msg.name] then
 				-- filter messages
 				local isSpam = false;
-				if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(message.type) then
+				if not PRIVATE.isFriend(name) and (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(message.type)) then
 					local isSpam = LKChat.FilterMessage(msg.text);
 					if isSpam then
 						ignoreUser[msg.name] = true;
@@ -519,10 +564,15 @@ function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 	for i=1, #drawMessages do
 		local msg = drawMessages[i];
 	
+		local top = 0;
 		local childCount = w_MESSAGEBOX:GetChildCount();
 		local w_PREVCHILD = w_MESSAGEBOX:GetChildByIndex(childCount - 1);
 		if w_PREVCHILD then
-			top = w_PREVCHILD:GetY() + w_PREVCHILD:GetHeight();
+			if w_PREVCHILD:GetName() == "cluster_"..msg.id then
+				top = w_PREVCHILD:GetY();
+			else
+				top = w_PREVCHILD:GetY() + w_PREVCHILD:GetHeight();
+			end
 		end
 		if g_Settings.Theme == THEME_BUBBLE then
 			LKChat.DrawBubbleMessage(w_MESSAGEBOX, msg, top);
@@ -565,11 +615,12 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 	
 	local w_CHATCONTROL = w_MESSAGEBOX:CreateOrGetControlSet(chatCtrlName, "cluster_"..message.id, horzGravity, ui.TOP, marginLeft, top, marginRight, 0);
 	w_CHATCONTROL:EnableHitTest(1);
+	w_CHATCONTROL:SetUserValue("id", message.id);
 	if message.type ~= "System" then
 		if message.isGM then
 			colorGroup = "GM";
 		end
-		w_CHATCONTROL:SetEventScript(ui.RBUTTONDOWN, 'CHAT_RBTN_POPUP');
+		w_CHATCONTROL:SetEventScript(ui.RBUTTONDOWN, "LKCHAT_ON_RIGHTCLICK_CHAT");
 		w_CHATCONTROL:SetUserValue("TARGET_NAME", message.name);
 	end
 
@@ -724,6 +775,9 @@ function PRIVATE.HideInput()
 
 		chatFrame:ShowWindow(0);
 		edit:ShowWindow(0);
+		
+		ui.CloseFrame("chat_option");
+		ui.CloseFrame("chat_emoticon");
 	end
 end
 
@@ -752,5 +806,25 @@ function PRIVATE.ClearBlocked()
 		local name = f:GetInfo():GetFamilyName();
 		friends.RequestDelete(name);
 		printc("Block Removed: "..name);
+	end
+end
+
+function PRIVATE.isFriend(name)
+	--for i = 1, #g_FriendWhiteList do
+	--	if g_FriendWhiteList[i] == name then
+	--		return true;
+	--	end
+	--end
+	-- Faster
+	return g_FriendWhiteList[name];
+end
+
+function PRIVATE.RefreshFriendList()
+	g_FriendWhiteList = {};
+	local num = session.friends.GetFriendCount(FRIEND_LIST_COMPLETE);
+	for i = 0 , num - 1 do
+		local f = session.friends.GetFriendByIndex(FRIEND_LIST_COMPLETE, i);	
+		--table.insert(friendTable, f:GetFamilyName());
+		g_FriendWhiteList[f:GetInfo():GetFamilyName()] = true;
 	end
 end
