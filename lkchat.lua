@@ -3,7 +3,7 @@ _G["LKChat"] = {};
 local LKChat = _G["LKChat"];
 local PRIVATE = {};
 
-LKChat._version = "Alpha v0.3";
+LKChat._version = "Alpha v0.4";
 
 -- Constants
 local TYPE_INT = 0;
@@ -103,7 +103,7 @@ local g_BotSpamFlags = {
 local g_UserKeySettings = {
 	["LKCHAT_THEME"]			= {name = "Theme", type = TYPE_INT, default = 0, min = 0, max = 1},
 	["LKCHAT_FONTSIZE"]			= {name = "FontSize", type = TYPE_INT, default = 16, min = 10, max = 25},
-	["LKCHAT_TRANSPARENCY"]		= {name = "Transparency", type = TYPE_INT, default = 175, min = 0, max = 255},
+	["LKCHAT_TRANSPARENCY"]		= {name = "Transparency", type = TYPE_INT, default = 255, min = 0, max = 255},
 	["LKCHAT_SHOWTICKER"]		= {name = "ShowTicker", type = TYPE_INT, default = 0, min = 0, max = 1},
 	["LKCHAT_TIMESTAMP"]		= {name = "TimeStamp", type = TYPE_INT, default = 1, min = 0, max = 1},
 	["LKCHAT_AUTOHIDE"]			= {name = "AutoHide", type = TYPE_INT, default = 0, min = 0, max = 1},
@@ -192,15 +192,17 @@ function LKCHAT_ON_SLIDE_FONTSIZE(frame, ctrl, str, num)
 	LKChat.SetConfigByKey("LKCHAT_FONTSIZE", size);
 end
 
-function LKCHAT_ON_SLIDE_OPACITY()
+function LKCHAT_ON_SLIDE_OPACITY(frame, ctrl, str, num)
 	local w_SLIDE = tolua.cast(ctrl, "ui::CSlideBar");
 	local value = w_SLIDE:GetLevel();
 	
 	local w_PARENT = ctrl:GetParent();
 	local w_LABEL = GET_CHILD(w_PARENT, "label_Transparency", "ui::CRichText");
-	w_LABEL:SetTextByKey("pct", string.format("%0.1f%%", value / 255));
+	w_LABEL:SetTextByKey("pct", string.format("%0.f%%", (value / 255) * 100));
 	
 	LKChat.SetConfigByKey("LKCHAT_TRANSPARENCY", value);
+	
+	CHAT_SET_OPACITY(value);
 end
 
 function LKCHAT_ON_CHECKBOX_TIMESTAMP(frame, obj, argStr, argNum)
@@ -348,9 +350,10 @@ function LKChat.InitializeSettings(frame)
 	
 	-- Transparency
 	local w_SLIDER_TRANSPARENCY = GET_CHILD(w_GROUP_CHATDISPLAY, "slider_Transparency", "ui::CSlideBar");
-	w_SLIDERFONTSIZE:SetLevel(LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY"));
+	w_SLIDER_TRANSPARENCY:SetLevel(LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY"));
 	local w_LABEL_TRANSPARENCY = GET_CHILD(w_GROUP_CHATDISPLAY, "label_Transparency", "ui::CRichText");
-	w_LABELFONTSIZE:SetTextByKey("pct", string.format("%0.1f%%", LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY") / 255));
+	w_LABEL_TRANSPARENCY:SetTextByKey("pct", string.format("%0.f%%", (LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY") / 255) * 100));
+	CHAT_SET_OPACITY(LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY"));
 	
 	-- Timestamp
 	local w_CHECKBOXTIMESTAMP = GET_CHILD(w_GROUP_CHATDISPLAY, "check_Timestamp", "ui::CCheckBox");
@@ -584,15 +587,15 @@ function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 				--if w_PREVCHILD:GetName() == "cluster_"..msg.id then
 				if w_PREVCHILD:GetUserValue("id") == msg.id and msg.type ~= "SpamNotice" then
 					top = w_PREVCHILD:GetY();
-					msg.text = msg.text .. " --py-t: "..top;
+					msg.text = msg.text;
 				else
 					top = w_PREVCHILD:GetY() + w_PREVCHILD:GetHeight();
-					msg.text = msg.text .. " --pyh-t: "..top;
+					msg.text = msg.text;
 				end
 			end
 		elseif prevId ~= msg.id then
 			top = top + height;
-			msg.text = msg.text .. " --nh-t: "..top;
+			msg.text = msg.text;
 		end
 		if g_Settings.Theme == THEME_BUBBLE then
 			top, height = LKChat.DrawBubbleMessage(w_MESSAGEBOX, msg, top);
