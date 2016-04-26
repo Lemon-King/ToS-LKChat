@@ -1,3 +1,15 @@
+-- global utility functions
+_G["printc"] = function(text)
+	ui.SysMsg(text);
+	--LKChat.OnDebugMessage(text);
+end
+
+if not _G["math"].clamp then
+	_G["math"].clamp = function(num,min,max)
+		return math.max(math.min(num, max), min);
+	end
+end
+
 -- Globals
 _G["LKChat"] = {};
 local LKChat = _G["LKChat"];
@@ -101,18 +113,18 @@ local g_BotSpamFlags = {
 
 -- Lookup table
 local g_UserKeySettings = {
-	["LKCHAT_THEME"]			= {name = "Theme", type = TYPE_INT, default = 0, min = 0, max = 1},
-	["LKCHAT_FONTSIZE"]			= {name = "FontSize", type = TYPE_INT, default = 16, min = 10, max = 25},
-	["LKCHAT_TRANSPARENCY"]		= {name = "Transparency", type = TYPE_INT, default = 255, min = 0, max = 255},
-	["LKCHAT_SHOWTICKER"]		= {name = "ShowTicker", type = TYPE_INT, default = 0, min = 0, max = 1},
-	["LKCHAT_TIMESTAMP"]		= {name = "TimeStamp", type = TYPE_INT, default = 1, min = 0, max = 1},
-	["LKCHAT_AUTOHIDE"]			= {name = "AutoHide", type = TYPE_INT, default = 0, min = 0, max = 1},
+	["LKCHAT_THEME"]			= { name = "Theme", type = TYPE_INT, default = 0, min = 0, max = 1 },
+	["LKCHAT_FONTSIZE"]			= { name = "FontSize", type = TYPE_INT, default = 16, min = 10, max = 25 },
+	["LKCHAT_TRANSPARENCY"]		= { name = "Transparency", type = TYPE_INT, default = 255, min = 0, max = 255 },
+	["LKCHAT_SHOWTICKER"]		= { name = "ShowTicker", type = TYPE_INT, default = 0, min = 0, max = 1 },
+	["LKCHAT_TIMESTAMP"]		= { name = "TimeStamp", type = TYPE_INT, default = 1, min = 0, max = 1 },
+	["LKCHAT_AUTOHIDE"]			= { name = "AutoHide", type = TYPE_INT, default = 0, min = 0, max = 1 },
 	
-	["LKCHAT_ANTISPAM"]			= {name = "AntiSpam", type = TYPE_INT, default = 1, min = 0, max = 1},
-	["LKCHAT_ANTISPAMNOTICE"]	= {name = "AntiSpamNotice", type = TYPE_INT, default = 1, min = 0, max = 1},
-	["LKCHAT_AUTOREPORT"]		= {name = "ReportAutoBot", type = TYPE_INT, default = 0, min = 0, max = 1},
+	["LKCHAT_ANTISPAM"]			= { name = "AntiSpam", type = TYPE_INT, default = 1, min = 0, max = 1 },
+	["LKCHAT_ANTISPAMNOTICE"]	= { name = "AntiSpamNotice", type = TYPE_INT, default = 1, min = 0, max = 1 },
+	["LKCHAT_AUTOREPORT"]		= { name = "ReportAutoBot", type = TYPE_INT, default = 0, min = 0, max = 1 },
 	
-	["LKCHAT_DISPLAYFPS"]		= {name = "DisplayFPS", type = TYPE_INT, default = 1, min = 0, max = 1},
+	["LKCHAT_DISPLAYFPS"]		= { name = "DisplayFPS", type = TYPE_INT, default = 1, min = 0, max = 1 },
 };
 
 -- Variables
@@ -121,20 +133,6 @@ local g_PlayerFamilyName;
 local g_Settings = {};
 local g_RegisteredSlashCommands = {};
 local g_FriendWhiteList = {};
-
--- global utility functions
-_G["printc"] = function(text)
-	ui.SysMsg(text);
-	--LKChat.OnDebugMessage(text);
-end
-
-if not _G["math"].clamp then
-	_G["math"].clamp = function(num,min,max)
-		return math.max(math.min(num, max), min);
-	end
-end
-
-
 
 -- UI Events
 function LKCHAT_ON_INIT(addon, frame)
@@ -145,8 +143,8 @@ function LKCHAT_ON_INIT(addon, frame)
 		addon:RegisterOpenOnlyMsg("ADD_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("UPDATE_FRIEND_LIST", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		
-		LKChat.OnInit(frame);
 		LKChat.SetAPIHooks();
+		LKChat.OnInit(frame);
 	end
 end
 
