@@ -18,6 +18,14 @@ local g_LineChatFormat = {
 	"{#FF777777}%s {#%s}[%s] [%s]: %s", -- Timestamp
 };
 
+local g_ItemGradeColors = setmetatable({
+	"#051505",	-- Common
+	"#050515",	-- Uncommon?
+	"#151505",	-- Rare
+	"#FFFF00",	-- Epic
+	"#FF0000",	-- Legendary
+}, {__index = function() return "#FFFFFF" end });
+
 local g_DefaultChatColors = {
 	-- Chat Channels
 	["Normal"] = {
@@ -55,8 +63,8 @@ local g_DefaultChatColors = {
 	},
 	
 	-- Special
-	["AntiSpam"] = {
-		["Default"] = "FFA6E7FF",
+	["SpamNotice"] = {
+		["Default"] = "FFFF5A36",
 	},
 };
 
@@ -74,24 +82,29 @@ local g_RegExList = {
 };
 
 local g_BotSpamFlags = {
-	"sell",
-	"usd",
-	"cheap",
-	"fast",
-	"f@st",
-	"offer",
-	"qq",
-	"delivery",
-	"silver",
-	"s1lver",
-	"gold",
-	"g0ld",
+	{ flag = "sell",		weight = 1 },
+	{ flag = "usd",			weight = 1 },
+	{ flag = "eur",			weight = 1 },
+	{ flag = "cheap",		weight = 1 },
+	{ flag = "fast",		weight = 1 },
+	{ flag = "f@st",		weight = 1 },
+	{ flag = "offer",		weight = 1 },
+	{ flag = "qq",			weight = 1 },
+	{ flag = "delivery",	weight = 1 },
+	{ flag = "silver",		weight = 1 },
+	{ flag = "s1lver",		weight = 1 },
+	{ flag = "gold",		weight = 1 },
+	{ flag = "g0ld",		weight = 1 },
+	{ flag = "mmoceo",		weight = 1 },
+	{ flag = "m-m-o-c-e-o",	weight = 2 },
 };
 
 -- Lookup table
 local g_UserKeySettings = {
 	["LKCHAT_THEME"]			= {name = "Theme", type = TYPE_INT, default = 0, min = 0, max = 1},
 	["LKCHAT_FONTSIZE"]			= {name = "FontSize", type = TYPE_INT, default = 16, min = 10, max = 25},
+	["LKCHAT_TRANSPARENCY"]		= {name = "Transparency", type = TYPE_INT, default = 175, min = 0, max = 255},
+	["LKCHAT_SHOWTICKER"]		= {name = "ShowTicker", type = TYPE_INT, default = 0, min = 0, max = 1},
 	["LKCHAT_TIMESTAMP"]		= {name = "TimeStamp", type = TYPE_INT, default = 1, min = 0, max = 1},
 	["LKCHAT_AUTOHIDE"]			= {name = "AutoHide", type = TYPE_INT, default = 0, min = 0, max = 1},
 	
@@ -139,6 +152,7 @@ end
 
 function LKCHAT_ON_GAME_START(frame)
 	-- Refresh on channel change or zone change
+	LKChat.RefreshSettings(frame);
 	PRIVATE.DisplayFPS();
 end
 
@@ -168,16 +182,25 @@ function LKCHAT_ON_RIGHTCLICK_CHAT(frame, chatCtrl)
 end
 
 function LKCHAT_ON_SLIDE_FONTSIZE(frame, ctrl, str, num)
-	local w_SLIDE_FONTSIZE = tolua.cast(ctrl, "ui::CSlideBar");
-	local size = w_SLIDE_FONTSIZE:GetLevel();
+	local w_SLIDE = tolua.cast(ctrl, "ui::CSlideBar");
+	local size = w_SLIDE:GetLevel();
 	
 	local w_PARENT = ctrl:GetParent();
-	local w_LABEL_FONTSIZE = GET_CHILD(w_PARENT, "label_FontSize", "ui::CRichText");
-	if w_LABEL_FONTSIZE then
-		w_LABEL_FONTSIZE:SetTextByKey("size", size);
-	end
+	local w_LABEL = GET_CHILD(w_PARENT, "label_FontSize", "ui::CRichText");
+	w_LABEL:SetTextByKey("size", size);
 	
 	LKChat.SetConfigByKey("LKCHAT_FONTSIZE", size);
+end
+
+function LKCHAT_ON_SLIDE_OPACITY()
+	local w_SLIDE = tolua.cast(ctrl, "ui::CSlideBar");
+	local value = w_SLIDE:GetLevel();
+	
+	local w_PARENT = ctrl:GetParent();
+	local w_LABEL = GET_CHILD(w_PARENT, "label_Transparency", "ui::CRichText");
+	w_LABEL:SetTextByKey("pct", string.format("%0.1f%%", value / 255));
+	
+	LKChat.SetConfigByKey("LKCHAT_TRANSPARENCY", value);
 end
 
 function LKCHAT_ON_CHECKBOX_TIMESTAMP(frame, obj, argStr, argNum)
@@ -249,10 +272,15 @@ end
 function LKChat.SetAPIHooks()
 	_G["UI_CHAT"] = LKChat.OnSendMessage;
 	
-	if not _G["DRAW_CHAT_MSG_ORIG"] then
-		_G["DRAW_CHAT_MSG_ORIG"] = _G["DRAW_CHAT_MSG"];
-	end
+	--if not _G["DRAW_CHAT_MSG_IMC"] then
+	--	_G["DRAW_CHAT_MSG_IMC"] = _G["DRAW_CHAT_MSG"];
+	--end
 	_G["DRAW_CHAT_MSG"] = LKChat.OnMessage;
+	
+	--if not _G["CHAT_OPEN_OPTION_IMC"] then
+	--	_G["CHAT_OPEN_OPTION_IMC"] = CHAT_OPEN_OPTION;
+	--end
+	_G["CHAT_OPEN_OPTION"] = function() ui.ToggleFrame('lkchat') end;
 end
 
 function LKChat.RefreshSettings(frame)
@@ -317,6 +345,12 @@ function LKChat.InitializeSettings(frame)
 	w_SLIDERFONTSIZE:SetLevel(LKChat.GetConfigByKey("LKCHAT_FONTSIZE"));
 	local w_LABELFONTSIZE = GET_CHILD(w_GROUP_CHATDISPLAY, "label_FontSize", "ui::CRichText");
 	w_LABELFONTSIZE:SetTextByKey("size", LKChat.GetConfigByKey("LKCHAT_FONTSIZE"));
+	
+	-- Transparency
+	local w_SLIDER_TRANSPARENCY = GET_CHILD(w_GROUP_CHATDISPLAY, "slider_Transparency", "ui::CSlideBar");
+	w_SLIDERFONTSIZE:SetLevel(LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY"));
+	local w_LABEL_TRANSPARENCY = GET_CHILD(w_GROUP_CHATDISPLAY, "label_Transparency", "ui::CRichText");
+	w_LABELFONTSIZE:SetTextByKey("pct", string.format("%0.1f%%", LKChat.GetConfigByKey("LKCHAT_TRANSPARENCY") / 255));
 	
 	-- Timestamp
 	local w_CHECKBOXTIMESTAMP = GET_CHILD(w_GROUP_CHATDISPLAY, "check_Timestamp", "ui::CCheckBox");
@@ -442,8 +476,9 @@ function LKChat.IsChannelUnchecked(type)
 end
 
 function LKChat.AddGroupbox(groupBoxName)
+	local name = groupBoxName;
 	local w_CHATFRAME = ui.GetFrame("chatframe");
-	local w_GROUPBOX = GET_CHILD(w_CHATFRAME, groupBoxName);
+	local w_GROUPBOX = GET_CHILD(w_CHATFRAME, name);
 
 	if not w_GROUPBOX then
 		local leftMargin = w_CHATFRAME:GetUserConfig("GBOX_LEFT_MARGIN");
@@ -451,28 +486,11 @@ function LKChat.AddGroupbox(groupBoxName)
 		local topMargin = w_CHATFRAME:GetUserConfig("GBOX_TOP_MARGIN");
 		local bottomMargin = w_CHATFRAME:GetUserConfig("GBOX_BOTTOM_MARGIN");
 
-		w_GROUPBOX = w_CHATFRAME:CreateControl("groupbox", groupboxname, w_CHATFRAME:GetWidth() - (leftMargin + rightMargin), w_CHATFRAME:GetHeight() - (topMargin + bottomMargin), ui.RIGHT, ui.BOTTOM, 0, 0, rightMargin, bottomMargin);
+		w_GROUPBOX = w_CHATFRAME:CreateControl("groupbox", name, w_CHATFRAME:GetWidth() - (leftMargin + rightMargin), w_CHATFRAME:GetHeight() - (topMargin + bottomMargin), ui.RIGHT, ui.BOTTOM, 0, 0, rightMargin, bottomMargin);
 
 		_ADD_GBOX_OPTION_FOR_CHATFRAME(w_GROUPBOX)
 	end
 	return w_GROUPBOX;
-end
-
-function LKChat.FormatMessage(msg)
-	local name = msg:GetCommanderName();
-	local isGM = (string.sub(name, 1, 3) == "GM_");
-	local o = {
-		id = msg:GetClusterID(),
-		name = name,
-		time = msg:GetTimeStr(),
-		type = msg:GetMsgType(),
-		room = msg:GetRoomID(),
-		text = msg:GetMsg(),
-		unreadCount = msg:GetNotReadCount(),
-		isGM = isGM,
-	};
-
-	return o;
 end
 
 function LKChat.OnDebugMessage(text)
@@ -490,25 +508,19 @@ function LKChat.FilterMessage(text)
 		end
 	end
 	
-	local requiredFlags = 2
-	local flags = 0;
+	local threshold = 2
+	local weight = 0;
 	if flagCheck then
 		for i = 1, #g_BotSpamFlags do
-			if (string.find(lowtext, g_BotSpamFlags[i])) then
-				flags = flags + 1;
-				if flags >= requiredFlags then
+			if (string.find(lowtext, g_BotSpamFlags[i].flag)) then
+				weight = weight + g_BotSpamFlags[i].weight;
+				if weight >= threshold then
 					return true;
 				end
 			end
 		end
 	end
 end
-
-local g_RightClickMenu = {
-	
-	
-	
-};
 
 function LKChat.OnRightClickMessage(frame, chatCtrl)
 	local name = chatCtrl:GetUserValue("TARGET_NAME");
@@ -517,11 +529,11 @@ function LKChat.OnRightClickMessage(frame, chatCtrl)
 	end
 
 	local menu = ui.CreateContextMenu("CONTEXT_CHAT_RBTN", name, 0, 0, 170, 100);
-	ui.AddContextMenuItem(menu, ScpArgMsg("WHISPER"),		string.format("ui.WhisperTo('%s')", name));
-	ui.AddContextMenuItem(menu, ScpArgMsg("ReqAddFriend"),	string.format("friends.RequestRegister('%s')", name));
-	ui.AddContextMenuItem(menu, ScpArgMsg("PARTY_INVITE"),	string.format("PARTY_INVITE(\"%s\")", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("WHISPER"),			string.format("ui.WhisperTo('%s')", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("ReqAddFriend"),		string.format("friends.RequestRegister('%s')", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("PARTY_INVITE"),		string.format("PARTY_INVITE(\"%s\")", name));
 	ui.AddContextMenuItem(menu, ScpArgMsg("Report_AutoBot"),	string.format("REPORT_AUTOBOT_MSGBOX(\"%s\")", name));
-	ui.AddContextMenuItem(menu, ScpArgMsg("FriendBlock"),	string.format("CHAT_BLOCK_MSG('%s')", name));
+	ui.AddContextMenuItem(menu, ScpArgMsg("FriendBlock"),		string.format("CHAT_BLOCK_MSG('%s')", name));
 	ui.AddContextMenuItem(menu, ScpArgMsg("Cancel"),			"None");
 	
 	ui.OpenContextMenu(menu);
@@ -539,7 +551,7 @@ function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 	for i = startIndex, size - 1 do
 		local message = session.ui.GetChatMsgClusterInfo(groupBoxName, i);
 		if message then
-			local msg = LKChat.FormatMessage(message);
+			local msg = PRIVATE.FormatMessage(message);
 			if not ignoreUser[msg.name] then
 				-- filter messages
 				local isSpam = false;
@@ -549,10 +561,7 @@ function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 						ignoreUser[msg.name] = true;
 						PRIVATE.AntiSpam_BlockActions(msg);
 						if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAMNOTICE")) then
-							msg.id = math.random();
-							msg.text = string.format("Blocked Spam from %s.", msg.name);
-							msg.name = "Spam Detection";
-							msg.type = "AntiSpam";
+							msg = PRIVATE.SpamRemoval_Notice(msg);
 						end
 					end
 				end
@@ -561,24 +570,36 @@ function LKChat.OnMessage(groupBoxName, size, startIndex, frameName)
 		end
 	end
 	
-	for i=1, #drawMessages do
+	local childCount = w_MESSAGEBOX:GetChildCount();
+	local w_PREVCHILD = w_MESSAGEBOX:GetChildByIndex(childCount - 1);
+	local top = 0;
+	local height = 0;
+	local prevId;
+	for i = 1, #drawMessages do
 		local msg = drawMessages[i];
-	
-		local top = 0;
-		local childCount = w_MESSAGEBOX:GetChildCount();
-		local w_PREVCHILD = w_MESSAGEBOX:GetChildByIndex(childCount - 1);
-		if w_PREVCHILD then
-			if w_PREVCHILD:GetName() == "cluster_"..msg.id then
-				top = w_PREVCHILD:GetY();
-			else
-				top = w_PREVCHILD:GetY() + w_PREVCHILD:GetHeight();
+		if top == 0 then
+			if w_PREVCHILD then
+				--local childCount = w_MESSAGEBOX:GetChildCount();
+				--local w_PREVCHILD = w_MESSAGEBOX:GetChildByIndex(childCount - 1);
+				--if w_PREVCHILD:GetName() == "cluster_"..msg.id then
+				if w_PREVCHILD:GetUserValue("id") == msg.id and msg.type ~= "SpamNotice" then
+					top = w_PREVCHILD:GetY();
+					msg.text = msg.text .. " --py-t: "..top;
+				else
+					top = w_PREVCHILD:GetY() + w_PREVCHILD:GetHeight();
+					msg.text = msg.text .. " --pyh-t: "..top;
+				end
 			end
+		elseif prevId ~= msg.id then
+			top = top + height;
+			msg.text = msg.text .. " --nh-t: "..top;
 		end
 		if g_Settings.Theme == THEME_BUBBLE then
-			LKChat.DrawBubbleMessage(w_MESSAGEBOX, msg, top);
-		elseif g_Settings.Theme == THEME_LINE then
-			LKChat.DrawSimpleMessage(w_MESSAGEBOX, msg, top);
+			top, height = LKChat.DrawBubbleMessage(w_MESSAGEBOX, msg, top);
+		--elseif g_Settings.Theme == THEME_LINE then
+		--	top, height = LKChat.DrawSimpleMessage(w_MESSAGEBOX, msg, top);
 		end
+		prevId = msg.id;
 		w_MESSAGEBOX:UpdateData();
 	end
 
@@ -616,7 +637,7 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 	local w_CHATCONTROL = w_MESSAGEBOX:CreateOrGetControlSet(chatCtrlName, "cluster_"..message.id, horzGravity, ui.TOP, marginLeft, top, marginRight, 0);
 	w_CHATCONTROL:EnableHitTest(1);
 	w_CHATCONTROL:SetUserValue("id", message.id);
-	if message.type ~= "System" then
+	if message.type ~= "System" or message.type ~= "SpamNotice" then
 		if message.isGM then
 			colorGroup = "GM";
 		end
@@ -665,21 +686,28 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 		w_BACKGROUND:EnableHitTest(1);
 	end
 
-	LKChat.ResizeBubble(w_CHATCONTROL, w_BACKGROUND, w_TEXT, w_TIMEBOX);
+	local height = LKChat.ResizeBubble(w_CHATCONTROL, w_BACKGROUND, w_TEXT, w_TIMEBOX);
+	return top, height;
+	
+	--return w_CHATCONTROL;
 end
 
 function LKChat.ResizeBubble(w_CHATCONTROL, w_BACKGROUND, w_TEXT, w_TIMEBOX)
 	local textWidth = w_TEXT:GetWidth() + 40;
 	local chatWidth = w_CHATCONTROL:GetWidth();
 	w_BACKGROUND:Resize(textWidth, w_TEXT:GetHeight() + 20);
+	
+	local height = w_BACKGROUND:GetY() + w_BACKGROUND:GetHeight() + 10;
 
-	w_CHATCONTROL:Resize(chatWidth, w_BACKGROUND:GetY() + w_BACKGROUND:GetHeight() + 10);
+	w_CHATCONTROL:Resize(chatWidth, height);
 
 	local offsetX = w_BACKGROUND:GetX() + w_TEXT:GetWidth() - 60;
 	if 35 > offsetX then
 		offsetX = offsetX + 40;
 	end
 	w_TIMEBOX:SetOffset(offsetX, w_BACKGROUND:GetY() + w_BACKGROUND:GetHeight() - 10);
+	
+	return height;
 end
 
 -- Simple Chat
@@ -699,7 +727,7 @@ function LKChat.DrawSimpleMessage(w_MESSAGEBOX, message, top)
 	w_TEXT:ShowWindow(1);
 	if message.type == "Debug" then
 		--fontSize = 12;
-	elseif message.type == "AntiSpam" then
+	elseif message.type == "SpamNotice" then
 		colorGroup = "Default";
 		--fontSize = 12;
 	elseif message.type ~= "System" then
@@ -745,14 +773,38 @@ function PRIVATE.SetVersion(frame)
 	w_VERSION:SetTextByKey("version", LKChat._version);
 end
 
-function PRIVATE.AntiSpam_Notice(msg)
+function PRIVATE.FormatMessage(msg)
+	local name = msg:GetCommanderName();
+	local isGM = (string.sub(name, 1, 3) == "GM_");
+	local o = {
+		id = msg:GetClusterID(),
+		name = name,
+		time = msg:GetTimeStr(),
+		type = msg:GetMsgType(),
+		room = msg:GetRoomID(),
+		text = msg:GetMsg(),
+		unreadCount = msg:GetNotReadCount(),
+		isGM = isGM,
+	};
+
+	return o;
+end
+
+function PRIVATE.SpamRemoval_Notice(msg)
+	local blockMsg;
+	if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_AUTOREPORT")) then
+		blockMsg = string.format("User %s has been blocked and reported.", msg.name);
+	else
+		blockMsg = string.format("User %s has been blocked.", msg.name);
+	end
+
 	local notice = {
 		id = math.random(),
 		name = "Spam Detection",
 		time = msg.time,
-		type = "AntiSpam",
+		type = "SpamNotice",
 		room = msg.room,
-		text = string.format("Blocked Spam from %s.", msg.name),
+		text = blockMsg,
 		unreadCount = 0,
 		isGM = false,
 		isNotice = true,
@@ -810,12 +862,6 @@ function PRIVATE.ClearBlocked()
 end
 
 function PRIVATE.isFriend(name)
-	--for i = 1, #g_FriendWhiteList do
-	--	if g_FriendWhiteList[i] == name then
-	--		return true;
-	--	end
-	--end
-	-- Faster
 	return g_FriendWhiteList[name];
 end
 
@@ -823,8 +869,19 @@ function PRIVATE.RefreshFriendList()
 	g_FriendWhiteList = {};
 	local num = session.friends.GetFriendCount(FRIEND_LIST_COMPLETE);
 	for i = 0 , num - 1 do
-		local f = session.friends.GetFriendByIndex(FRIEND_LIST_COMPLETE, i);	
-		--table.insert(friendTable, f:GetFamilyName());
+		local f = session.friends.GetFriendByIndex(FRIEND_LIST_COMPLETE, i);
 		g_FriendWhiteList[f:GetInfo():GetFamilyName()] = true;
 	end
 end
+
+--[[
+function PRIVATE.FindAndColorizeLink(text)
+	local properties, id, color, image, height, width = string.match(text, "{a SLI (%.*) (%.*)}{#(%.*)}{img (%.*) (%.*) (%.*)}(%.*){/}{/}{/}");
+	
+	if id then
+		local item = CreateIESByID("Item", tonumber(id));
+		-- g_ItemGradeColors[item.ItemGrade];
+		string.grep(text, "({a SLI %.*}{#%.*}{img %.* %.* %.*}%.*{/}{/}{/})", {a SLI (%.*) (%.*)}{#(%.*)}{img (%.*) (%.*) (%.*)}(%.*){/}{/}{/})
+	end
+end
+--]]

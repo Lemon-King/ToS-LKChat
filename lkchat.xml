@@ -33,33 +33,40 @@
 		<groupbox name="gbox_settings" rect="0 0 430 870" margin="10 140 0 0" layout_gravity="left top" draw="false" hittestbox="false" resizebyresolution="true" scrollbar="true" skin="" tabname="tab_settings"/>
         
         
-        <groupbox name="gbox_ChatDisplay" parent="gbox_settings"rect="0 0 430 165" margin="0 0 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin=""/>
+        <groupbox name="gbox_ChatDisplay" parent="gbox_settings" rect="0 0 430 310" margin="0 0 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin=""/>
         
         <richtext name="label_ChatWindow" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="15 5 0 0" layout_gravity="left top" format="{@st43}Chat Window{/}"/>
        
         <richtext name="label_Theme" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="35 50 0 0" layout_gravity="left top" format="{@st66b}Theme{/}"/>
         <droplist name="droplist_Theme" parent="gbox_ChatDisplay" rect="0 0 120 40" margin="35 75 0 0" layout_gravity="left top" SelectScp="LKCHAT_ON_CHANGE_THEME" clicksound="button_click_big_2" font="white_20_ol" frametextalign="left" oversound="button_over" skin="droplist_normal" textalign="left center" textoffset="10 0" visibleline="2"/>
         <richtext name="label_FontSize" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="175 50 0 0" layout_gravity="left top" format="{@st66b}Font Size (%s){/}" param1="size"/>
-        <slidebar name="slider_FontSize" parent="gbox_ChatDisplay" rect="0 0 240 20" margin="175 75 0 0" layout_gravity="left top" SlideScp="LKCHAT_ON_SLIDE_FONTSIZE" clicksound="button_click_big_2" minlevel="10" maxlevel="25" oversound="button_over" skin="slidebar"/>
+        <slidebar name="slider_FontSize" parent="gbox_ChatDisplay" rect="0 0 240 20" margin="175 75 0 0" layout_gravity="left top" ConfigName="NULL" SlideScp="LKCHAT_ON_SLIDE_FONTSIZE" clicksound="button_click_big_2" minlevel="10" maxlevel="25" oversound="button_over" skin="slidebar"/>
         
-        <checkbox name="check_Timestamp" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 105 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_TIMESTAMP" caption="{@st66b}Show Timestamp{/}" clicksound="button_click_big" oversound="button_over"/>
-        <checkbox name="check_AutoHideInput" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 135 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_AUTOHIDECHAT" caption="{@st66b}Autohide Chat Input{/}" clicksound="button_click_big" oversound="button_over"/>
+        <richtext name="label_Transparency" parent="gbox_ChatDisplay" rect="0 0 120 24" margin="35 105 0 0" layout_gravity="left top" format="{@st66b}Background Transparency (%s){/}" param1="pct"/>
+        <slidebar name="slider_Transparency" parent="gbox_ChatDisplay" rect="0 0 380 20" margin="35 130 0 0" layout_gravity="left top" ConfigName="NULL" SlideScp="LKCHAT_ON_SLIDE_OPACITY" clicksound="button_click_big_2" minlevel="0" maxlevel="255" oversound="button_over" skin="slidebar"/>
         
-        <labelline name="boardline_endchatdisplay" parent="gbox_settings" rect="0 0 410 4" margin="20 175 0 0" layout_gravity="left top" skin="None" visible="true"/> 
+        <checkbox name="check_Timestamp" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 170 0 0" layout_gravity="left top" LBtnUpScp="LKCHAT_ON_CHECKBOX_TIMESTAMP" caption="{@st66b}Show Timestamp{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_AutoHideInput" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 205 0 0" layout_gravity="left top" LBtnUpScp="LKCHAT_ON_CHECKBOX_AUTOHIDECHAT" caption="{@st66b}Autohide Chat Input{/}" clicksound="button_click_big" oversound="button_over"/>
         
+        <checkbox name="check_ChatBalloon" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 240 0 0" layout_gravity="left top" ConfigName="ShowChatBalloon" caption="{@st66b}Show Chat Balloons{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_ShoutTicker" parent="gbox_ChatDisplay" rect="0 0 120 30" margin="35 275 0 0" layout_gravity="left top" ConfigName="ShowMicFrame" caption="{@st66b}Show Shout Ticker{/}" clicksound="button_click_big" oversound="button_over"/>
         
-        
-        
-        <groupbox name="gbox_AntiSpam" parent="gbox_settings" rect="0 0 430 145" margin="0 185 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin=""/>
-        <richtext name="label_AntiSpam" parent="gbox_AntiSpam" rect="0 0 120 24" margin="15 5 0 0" layout_gravity="left top" format="{@st43}Anti-Spam Detection{/}"/>
-        <checkbox name="check_SpamDetection" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 45 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_SPAMDETECTION" caption="{@st66b}Enable Spam Detection{/}" clicksound="button_click_big" oversound="button_over"/>
-        <checkbox name="check_SpamNotice" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 75 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_SPAMNOTICE" caption="{@st66b}Enable Detection Messages{/}" clicksound="button_click_big" oversound="button_over"/>
-        <checkbox name="check_ReportSpamBots" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 105 0 0" layout_gravity="left top" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_AUTOREPORT" caption="{@st66b}Auto-Report Spambots{/}" clicksound="button_click_big" oversound="button_over"/>
-        
-        <labelline name="boardline_endantispam" parent="gbox_settings" rect="0 0 410 4" margin="20 330 0 0" layout_gravity="left top" skin="None" visible="true"/> 
+        <labelline name="seperator_chatdisplay" parent="gbox_settings" rect="0 0 410 4" margin="20 315 0 0" layout_gravity="left top" skin="None" visible="true"/> 
         
         
-        <checkbox name="check_DisplayFPS" parent="gbox_settings" rect="0 0 120 30" margin="35 0 0 0" layout_gravity="left bottom" ConfigName="StyleTimeStamp" LBtnUpScp="LKCHAT_ON_CHECKBOX_DISPLAYFPS" caption="{@st66b}Display FPS{/}" clicksound="button_click_big" oversound="button_over"/>
+        
+        
+        <groupbox name="gbox_AntiSpam" parent="gbox_settings" rect="0 0 430 145" margin="0 330 0 0" layout_gravity="center top" draw="true" hittestbox="false" resizebyparent="false" scrollbar="false" skin=""/>
+        
+        <richtext name="label_AntiSpam" parent="gbox_AntiSpam" rect="0 0 120 24" margin="15 5 0 0" layout_gravity="left top" format="{@st43}Spam Detection{/}"/>
+        <checkbox name="check_SpamDetection" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 45 0 0" layout_gravity="left top" LBtnUpScp="LKCHAT_ON_CHECKBOX_SPAMDETECTION" caption="{@st66b}Enable Spam Detection{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_SpamNotice" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 75 0 0" layout_gravity="left top" LBtnUpScp="LKCHAT_ON_CHECKBOX_SPAMNOTICE" caption="{@st66b}Display Detection Messages{/}" clicksound="button_click_big" oversound="button_over"/>
+        <checkbox name="check_ReportSpamBots" parent="gbox_AntiSpam" rect="0 0 120 30" margin="35 105 0 0" layout_gravity="left top" LBtnUpScp="LKCHAT_ON_CHECKBOX_AUTOREPORT" caption="{@st66b}Auto-Report Gold Seller Spam{/}" clicksound="button_click_big" oversound="button_over"/>
+        
+        <labelline name="seperator_antispam" parent="gbox_settings" rect="0 0 410 4" margin="20 470 0 0" layout_gravity="left top" skin="None" visible="true"/> 
+        
+        
+        <checkbox name="check_DisplayFPS" parent="gbox_settings" rect="0 0 120 30" margin="35 0 0 0" layout_gravity="left bottom" LBtnUpScp="LKCHAT_ON_CHECKBOX_DISPLAYFPS" caption="{@st66b}Display FPS{/}" clicksound="button_click_big" oversound="button_over"/>
          
         <!-- Tab: Settings -->
         
