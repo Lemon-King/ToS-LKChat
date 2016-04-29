@@ -16,7 +16,7 @@ local LKChat = _G["LKChat"];
 local PRIVATE = {};
 --local L = setmetatable({ region = "kr",  = {}, }, {__index = function(k,v) return v end });
 
-LKChat._version = "Alpha v0.4";
+LKChat._version = "Alpha v0.4a";
 
 -- Constants
 local TYPE_INT = 0;
@@ -155,6 +155,7 @@ function LKCHAT_ON_INIT(addon, frame)
 		
 		LKChat.SetAPIHooks();
 		LKChat.OnInit(frame);
+		PRIVATE.RefreshFriendList();
 	end
 end
 
@@ -927,8 +928,14 @@ function PRIVATE.RefreshFriendList()
 end
 
 function PRIVATE.NotifyFriendState(fInfo, familyName)
-	local isOnlinePrev = g_FriendLoginState[familyName];
+	if not g_FriendLoginState[familyName] then
+		g_FriendLoginState[familyName] = {
+			online = false,
+		};
+	end
+	local isOnlinePrev = g_FriendLoginState[familyName].online;
 	local isOnlineCurr = (fInfo.mapID ~= 0);
+	printc(string.format("%s mapId: %s", familyName, fInfo.mapID));
 	
 	if isOnlinePrev ~= isOnlineCurr then
 		if isOnlineCurr then
@@ -938,6 +945,7 @@ function PRIVATE.NotifyFriendState(fInfo, familyName)
 			printc(string.format(FRIEND_LOGOFF, familyName));
 		end
 	end
+	g_FriendLoginState[familyName].online = isOnlineCurr;
 end
 
 function PRIVATE.PrintFriendMapState()
