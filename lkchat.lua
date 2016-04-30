@@ -16,7 +16,7 @@ local LKChat = _G["LKChat"];
 local PRIVATE = {};
 --local L = setmetatable({ region = "kr",  = {}, }, {__index = function(k,v) return v end });
 
-LKChat._version = "Alpha v0.4a";
+LKChat._version = "Alpha v0.4b";
 
 -- Constants
 local TYPE_INT = 0;
