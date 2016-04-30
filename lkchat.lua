@@ -264,6 +264,7 @@ function LKCHAT_ON_CHECKBOX_DISPLAYFPS(frame, obj, argStr, argNum)
 end
 
 -- Fullscreen Frame Event Bindings
+--[[
 if _G["FRAME_SET_FADE_IN"] then
 	_G["FRAME_SET_FADE_IN_IMC"] = _G["FRAME_SET_FADE_IN"];
 	_G["FRAME_SET_FADE_IN"] = function(parent, obj, argStr, argNum)
@@ -279,6 +280,7 @@ if _G["FRAME_SET_FADE_OUT"] then
 		_G["FRAME_SET_FADE_OUT_IMC"](parent, obj, argStr, argNum);
 	end
 end
+--]]
 
 function LKChat.OnEventFullscreen(parent, obj, argStr, argNum, event)
 	if argStr and string.lower(argStr) == "loadingbg" then
@@ -570,10 +572,10 @@ end
 local ignoreUser = {};
 local activeGroupBoxes = {};	-- used with chat regeneration
 function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
-	if g_PauseMessages then
-		table.insert(g_PendingMessages, {size=size, startIndex=startIndex, groupBoxName=groupBoxName});
-		return nil
-	end	
+	--if g_PauseMessages then
+	--	table.insert(g_PendingMessages, {size=size, startIndex=startIndex, groupBoxName=groupBoxName});
+	--	return nil;
+	--end	
 	
 	local w_MESSAGEBOX = LKChat.AddGroupbox(groupBoxName);
 	if not activeGroupBoxes[groupBoxName] then activeGroupBoxes[groupBoxName] = true end;
@@ -585,7 +587,7 @@ function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
 			local msg = PRIVATE.FormatMessage(message, groupBoxName);
 			if not ignoreUser[msg.name] then
 				-- filter messages
-				if not PRIVATE.isFriend(name) and (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(message.type)) then
+				if (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(message.type)) and not PRIVATE.isFriend(name) and msg.name ~= g_PlayerFamilyName then
 					if LKChat.FilterMessage(msg.text) then
 						ignoreUser[msg.name] = true;
 						PRIVATE.AntiSpam_BlockActions(msg);
