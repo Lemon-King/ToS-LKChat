@@ -1,3 +1,9 @@
+-- localize globals
+local string = string;
+local math = math;
+local table = table;
+
+-- TODO: Move to LIB ipf
 -- global utility functions
 _G["printc"] = function(text)
 	ui.SysMsg(text);
@@ -16,7 +22,7 @@ local LKChat = _G["LKChat"];
 local PRIVATE = {};
 --local L = setmetatable({ region = "kr",  = {}, }, {__index = function(k,v) return v end });
 
-LKChat._version = "Alpha v0.4b";
+LKChat._version = "Alpha v0.5";
 
 -- Constants
 local TYPE_INT = 0;
@@ -25,6 +31,9 @@ local TYPE_BOOL = 2;
 
 local THEME_BUBBLE = 0;
 local THEME_LINE = 1;
+
+local SEARCH_FIND = "find";
+local SEARCH_MATCH = "match";
 
 local FRIEND_LOGIN = "%s has come online.";
 local FRIEND_LOGOFF = "%s has gone offline.";
@@ -96,25 +105,29 @@ local g_RegExList = {
 	--"[%s3vw]*[,%.]%s*.*%s*[,%.]%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection
 };
 
-local g_BotSpamFlags = {
-	{ flag = "sell",			weight = 1 },
-	{ flag = "usd",				weight = 1 },
-	{ flag = "eur",				weight = 1 },
-	{ flag = "daum",			weight = 1 },
-	{ flag = "cheap",			weight = 1 },
-	{ flag = "fast",			weight = 1 },
-	{ flag = "f@st",			weight = 1 },
-	{ flag = "offer",			weight = 1 },
-	{ flag = "qq",				weight = 1 },
-	{ flag = "delivery",		weight = 1 },
-	{ flag = "silver",			weight = 1 },
-	{ flag = "s1lver",			weight = 1 },
-	{ flag = "gold",			weight = 1 },
-	{ flag = "g0ld",			weight = 1 },
-	{ flag = "powerleveling",	weight = 1 },
-	{ flag = "p0wer1eve1ing",	weight = 1 },
-	{ flag = "mmoceo",			weight = 1 },
-	{ flag = "m-m-o-c-e-o",		weight = 2 },
+local g_BotSpamPatterns = {
+	-- find
+	{ pattern = "sell",				type = SEARCH_FIND,	weight = 1 },
+	{ pattern = "usd",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "eur",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "daum",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "cheap",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "fast",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "f@st",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "offer",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "qq",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "delivery",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "silver",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "s1lver",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "gold",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "g0ld",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "powerleveling",	type = SEARCH_FIND, weight = 1 },
+	{ pattern = "p0wer1eve1ing",	type = SEARCH_FIND, weight = 1 },
+	{ pattern = "mmoceo",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "m-m-o-c-e-o",		type = SEARCH_FIND, weight = 2 },
+	
+	-- match
+	{ pattern = "%d+k=%d+%$",		type = SEARCH_MATCH, weight = 2 },	-- 100k=1$
 };
 
 -- Lookup table
@@ -140,17 +153,23 @@ local g_Settings = {};
 local g_RegisteredSlashCommands = {};
 local g_FriendWhiteList = {};
 local g_FriendLoginState = {};
-local g_PauseMessages = false;
+local g_PauseMessages = true;
 local g_PendingMessages = {};
+local g_SessionIgnoreUser = {};
+
+local g_LastChatIndex = 0;
+local g_MessageBoxPosition = {};	-- used with chat generation
 
 -- UI Events
 function LKCHAT_ON_INIT(addon, frame)
 	if not LKChat.hasLoaded then
 		LKChat.addon = addon;
 		addon:RegisterMsg("GAME_START", "LKCHAT_ON_GAME_START");
+		addon:RegisterMsg("GAME_START_3SEC", "LKCHAT_ON_GAME_START_DELAY");
+		addon:RegisterMsg('START_LOADING', 'LKCHAT_ON_START_LOADING');
 		--addon:RegisterMsg('START_LOADING', "LKCHAT_ON_LOADING");
-		addon:RegisterOpenOnlyMsg("REMOVE_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("ADD_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
+		addon:RegisterOpenOnlyMsg("REMOVE_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("UPDATE_FRIEND_LIST", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		
 		LKChat.SetAPIHooks();
@@ -163,6 +182,25 @@ function LKCHAT_ON_GAME_START(frame)
 	-- Refresh on channel change or zone change
 	LKChat.RefreshSettings(frame);
 	PRIVATE.DisplayFPS();
+	
+	g_PauseMessages = false;
+	if #g_PendingMessages > 0 then
+		for i = 1, #g_PendingMessages do
+			local pending = g_PendingMessages[i];
+			LKChat.OnChatMessage(pending.groupBoxName, pending.size, pending.startIndex, nil);
+		end
+		g_PendingMessages = {};
+	end
+end
+
+function LKCHAT_ON_GAME_START_DELAY(frame)
+	-- Refresh on channel change or zone change
+	LKChat.RefreshSettings(frame);
+	PRIVATE.DisplayFPS();
+end
+
+function LKCHAT_ON_START_LOADING(frame)
+	g_PauseMessages = true;
 end
 
 --function LKCHAT_ON_LOADING(frame)
@@ -171,7 +209,7 @@ end
 
 function LKCHAT_ON_OPEN(frame)
 	PRIVATE.SetVersion(frame);
-	
+
 	LKChat.RefreshSettings(frame);
 end
 
@@ -263,38 +301,6 @@ function LKCHAT_ON_CHECKBOX_DISPLAYFPS(frame, obj, argStr, argNum)
 	PRIVATE.DisplayFPS();
 end
 
--- Fullscreen Frame Event Bindings
---[[
-if _G["FRAME_SET_FADE_IN"] then
-	_G["FRAME_SET_FADE_IN_IMC"] = _G["FRAME_SET_FADE_IN"];
-	_G["FRAME_SET_FADE_IN"] = function(parent, obj, argStr, argNum)
-		LKChat.OnEventFullscreen(parent, obj, argStr, argNum, {pause=true});
-		_G["FRAME_SET_FADE_IN_IMC"](parent, obj, argStr, argNum);
-	end
-end
-
-if _G["FRAME_SET_FADE_OUT"] then
-	_G["FRAME_SET_FADE_OUT_IMC"] = _G["FRAME_SET_FADE_OUT"];
-	_G["FRAME_SET_FADE_OUT"] = function(parent, obj, argStr, argNum)
-		LKChat.OnEventFullscreen(parent, obj, argStr, argNum, {pause=false});
-		_G["FRAME_SET_FADE_OUT_IMC"](parent, obj, argStr, argNum);
-	end
-end
---]]
-
-function LKChat.OnEventFullscreen(parent, obj, argStr, argNum, event)
-	if argStr and string.lower(argStr) == "loadingbg" then
-		g_PauseMessages = event.pause;
-		if not event.pause and #g_PendingMessages > 0 then
-			for i = 1, #g_PendingMessages do
-				local pending = g_PendingMessages[i];
-				LKChat.OnChatMessage(pending.groupBoxName, pending.size, pending.startIndex, nil);
-			end
-			g_PendingMessages = {};
-		end
-	end
-end
-
 -- Initialize
 function LKChat.OnInit(frame)
 	g_Region = config.GetServiceNation();	-- if this becomes popular enough, may need a korean translation
@@ -311,17 +317,21 @@ function LKChat.OnInit(frame)
 end
 
 function LKChat.SetAPIHooks()
+	-- Override Hooks
 	_G["UI_CHAT"] = LKChat.OnSendMessage;
-	
-	--if not _G["DRAW_CHAT_MSG_IMC"] then
-	--	_G["DRAW_CHAT_MSG_IMC"] = _G["DRAW_CHAT_MSG"];
-	--end
 	_G["DRAW_CHAT_MSG"] = LKChat.OnChatMessage;
+	_G["CHAT_OPEN_OPTION"] = function()
+		ui.ToggleFrame('lkchat');
+		PRIVATE.HideInput();
+	end;
 	
-	--if not _G["CHAT_OPEN_OPTION_IMC"] then
-	--	_G["CHAT_OPEN_OPTION_IMC"] = CHAT_OPEN_OPTION;
+	-- Local Hooks
+	LKChat.Hooks = {};
+	--LKChat.Hooks.FPS_ON_INIT = _G["FPS_ON_INIT"];
+	--_G["FPS_ON_INIT"] = function(addon, frame)
+	--	LKChat.Hooks.FPS_ON_INIT(addon, frame);
+	--	PRIVATE.DisplayFPS();
 	--end
-	_G["CHAT_OPEN_OPTION"] = function() ui.ToggleFrame('lkchat') end;
 end
 
 function LKChat.RefreshSettings(frame)
@@ -445,14 +455,18 @@ end
 
 -- Register Slash Commands
 function LKChat.RegisterSlash(slashList, func, description)
+	local newCommands = false;
 	if #slashList > 0 then
 		for i = 1, #slashList do
 			local newSlash = slashList[i];
 			if not g_RegisteredSlashCommands[newSlash] then
 				g_RegisteredSlashCommands[newSlash] = {func = func, desc = description or ""};
+				newCommands = true;
 			end
 		end
-		printc("Slash Command Registered: "..slashList[1]);
+		if newCommands then
+			printc("Slash Command Registered: "..slashList[1]);
+		end
 	end
 end
 
@@ -531,19 +545,20 @@ end
 function LKChat.FilterMessage(text)
 	-- TODO: Normalize text
 	local lowtext = string.lower(text);
-	local flagCheck = false;
+	local doPatternCheck = false;
 	for i = 1, #g_RegExList do
 		if (string.match(lowtext, g_RegExList[i])) then
-			flagCheck = true;
+			doPatternCheck = true;
 		end
 	end
 	
 	local threshold = 2
 	local weight = 0;
-	if flagCheck then
-		for i = 1, #g_BotSpamFlags do
-			if (string.find(lowtext, g_BotSpamFlags[i].flag)) then
-				weight = weight + g_BotSpamFlags[i].weight;
+	if doPatternCheck then
+		for i = 1, #g_BotSpamPatterns do
+			local bsp = g_BotSpamPatterns[i];
+			if (string[bsp.type](lowtext, bsp.pattern)) then
+				weight = weight + bsp.weight;
 				if weight >= threshold then
 					return true;
 				end
@@ -569,27 +584,25 @@ function LKChat.OnRightClickMessage(frame, chatCtrl)
 	ui.OpenContextMenu(menu);
 end
 
-local ignoreUser = {};
-local activeGroupBoxes = {};	-- used with chat regeneration
 function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
-	--if g_PauseMessages then
-	--	table.insert(g_PendingMessages, {size=size, startIndex=startIndex, groupBoxName=groupBoxName});
-	--	return nil;
-	--end	
-	
-	local w_MESSAGEBOX = LKChat.AddGroupbox(groupBoxName);
-	if not activeGroupBoxes[groupBoxName] then activeGroupBoxes[groupBoxName] = true end;
+	if g_PauseMessages then
+		table.insert(g_PendingMessages, {size=size, startIndex=startIndex, groupBoxName=groupBoxName});
+		return nil;
+	end
+	if not g_MessageBoxPosition[groupBoxName] or g_MessageBoxPosition[groupBoxName].index > startIndex then
+		g_MessageBoxPosition[groupBoxName] = { top = 0, height = 0, id = -1, index = startIndex };
+	end
 	
 	local pending = {};
 	for i = startIndex, size - 1 do
 		local message = session.ui.GetChatMsgClusterInfo(groupBoxName, i);
 		if message then
 			local msg = PRIVATE.FormatMessage(message, groupBoxName);
-			if not ignoreUser[msg.name] then
-				-- filter messages
+			if not g_SessionIgnoreUser[msg.name] then
+				-- Message Filter
 				if (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(message.type)) and not PRIVATE.isFriend(name) and msg.name ~= g_PlayerFamilyName then
 					if LKChat.FilterMessage(msg.text) then
-						ignoreUser[msg.name] = true;
+						g_SessionIgnoreUser[msg.name] = true;
 						PRIVATE.AntiSpam_BlockActions(msg);
 						if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAMNOTICE")) then
 							msg = PRIVATE.SpamRemoval_Notice(msg);
@@ -601,7 +614,10 @@ function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
 		end
 	end
 	
-	LKChat.DrawMessages(w_MESSAGEBOX, pending);
+	if #pending > 0 then
+		local w_MESSAGEBOX = LKChat.AddGroupbox(groupBoxName);
+		LKChat.DrawMessages(w_MESSAGEBOX, pending);
+	end
 
 	if groupBoxName == "chatgbox_TOTAL" then
 		chat.UpdateAllReadFlag();
@@ -609,36 +625,25 @@ function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
 		chat.UpdateReadFlag(groupBoxName);
 	end
 end
-	
+
 function LKChat.DrawMessages(w_MESSAGEBOX, messages)
+	local mbName = w_MESSAGEBOX:GetName();
+	local msgPosition = g_MessageBoxPosition[mbName];
 	local lineCount = w_MESSAGEBOX:GetLineCount();
 	
-	local top = 0;
-	local height = 0;
-	local prevId = -1;
-	local childCount = w_MESSAGEBOX:GetChildCount();
-	local w_PREVCHILD = w_MESSAGEBOX:GetChildByIndex(childCount - 1);
-	if w_PREVCHILD then
-		if w_PREVCHILD:GetUserValue("id") == messages[1].id and messages[1].type ~= "SpamNotice" then
-			top = w_PREVCHILD:GetY();
-		else
-			top = w_PREVCHILD:GetY() + w_PREVCHILD:GetHeight();
-		end
-	end
-	
+	local top = msgPosition.top;
 	for i = 1, #messages do
 		local msg = messages[i];
-		
-		if prevId ~= msg.id then
-			top = top + height;
+		if msgPosition.id ~= msg.id then
+			top = top + msgPosition.height;
 		end
 		if g_Settings.Theme == THEME_BUBBLE then
-			top, height = LKChat.DrawBubbleMessage(w_MESSAGEBOX, msg, top);
+			msgPosition.top, msgPosition.height = LKChat.DrawBubbleMessage(w_MESSAGEBOX, msg, top);
 		end
-		prevId = msg.id;
-		w_MESSAGEBOX:UpdateData();
+		msgPosition.id = msg.id;
 	end
-
+	w_MESSAGEBOX:UpdateData();
+	
 	local afterLineCount = w_MESSAGEBOX:GetLineCount();
 	local changedLineCount = afterLineCount - lineCount;
 	local curLine = w_MESSAGEBOX:GetCurLine();
@@ -657,15 +662,18 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 	local colorGroup = "Default";
 	local chatCtrlName = 'chatu';
 	local horzGravity = ui.LEFT;
+	local margin = marginLeft;
 	if g_PlayerFamilyName == message.name then
 		colorGroup = "Player";
 		chatCtrlName = 'chati';
 		horzGravity = ui.RIGHT;
+		margin = marginRight;
 	end
 	
 	local w_CHATCONTROL = w_MESSAGEBOX:CreateOrGetControlSet(chatCtrlName, "cluster_"..message.id, horzGravity, ui.TOP, marginLeft, top, marginRight, 0);
 	w_CHATCONTROL:EnableHitTest(1);
 	w_CHATCONTROL:SetUserValue("id", message.id);
+	w_CHATCONTROL:SetOffset(margin, top);
 	if message.type ~= "System" or message.type ~= "SpamNotice" then
 		if message.isGM then
 			colorGroup = "GM";
@@ -827,7 +835,7 @@ function LKChat.DisplayMessage(text, header, color)
 	local name = msg:GetCommanderName();
 	local isGM = (string.sub(name, 1, 3) == "GM_");
 	local o = {
-		id = "message_"..math.random(),
+		id = 9000 + math.random(),
 		name = header or "System",
 		time = "",
 		type = "Custom",
@@ -848,7 +856,7 @@ function PRIVATE.SpamRemoval_Notice(msg)
 	end
 
 	local notice = {
-		id = math.random(),
+		id = 9000 + math.random(),
 		group = "TOTAL",
 		name = "Spam Detection",
 		time = msg.time,
@@ -885,11 +893,10 @@ end
 
 -- Misc
 function PRIVATE.DisplayFPS()
-	if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_DISPLAYFPS")) then
-		ui.OpenFrame("fps");
-	else
-		ui.CloseFrame("fps");
-	end
+	local visible = LKChat.GetConfigByKey("LKCHAT_DISPLAYFPS");
+	
+	local f = ui.GetFrame("fps");
+	f:ShowWindow(visible);
 end
 
 -- Util
