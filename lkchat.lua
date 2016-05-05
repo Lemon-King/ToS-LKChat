@@ -166,7 +166,7 @@ function LKCHAT_ON_INIT(addon, frame)
 		LKChat.addon = addon;
 		addon:RegisterMsg("GAME_START", "LKCHAT_ON_GAME_START");
 		addon:RegisterMsg("GAME_START_3SEC", "LKCHAT_ON_GAME_START_DELAY");
-		addon:RegisterMsg('START_LOADING', 'LKCHAT_ON_START_LOADING');
+		--addon:RegisterMsg('START_LOADING', 'LKCHAT_ON_START_LOADING');
 		--addon:RegisterMsg('START_LOADING', "LKCHAT_ON_LOADING");
 		addon:RegisterOpenOnlyMsg("ADD_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("REMOVE_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
