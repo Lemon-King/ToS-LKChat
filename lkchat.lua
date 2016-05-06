@@ -22,7 +22,7 @@ local LKChat = _G["LKChat"];
 local PRIVATE = {};
 --local L = setmetatable({ region = "kr",  = {}, }, {__index = function(k,v) return v end });
 
-LKChat._version = "Alpha v0.5";
+LKChat._version = "Alpha v0.5c";
 
 -- Constants
 local TYPE_INT = 0;
@@ -133,7 +133,7 @@ local g_BotSpamPatterns = {
 -- Lookup table
 local g_UserKeySettings = {
 	["LKCHAT_THEME"]			= { name = "Theme", type = TYPE_INT, default = 0, min = 0, max = 1 },
-	["LKCHAT_FONTSIZE"]			= { name = "FontSize", type = TYPE_INT, default = 16, min = 10, max = 25 },
+	["LKCHAT_FONTSIZE"]			= { name = "FontSize", type = TYPE_INT, default = 16, min = 10, max = 40 },
 	["LKCHAT_TRANSPARENCY"]		= { name = "Transparency", type = TYPE_INT, default = 255, min = 0, max = 255 },
 	["LKCHAT_SHOWTICKER"]		= { name = "ShowTicker", type = TYPE_INT, default = 0, min = 0, max = 1 },
 	["LKCHAT_TIMESTAMP"]		= { name = "TimeStamp", type = TYPE_INT, default = 1, min = 0, max = 1 },
@@ -153,7 +153,7 @@ local g_Settings = {};
 local g_RegisteredSlashCommands = {};
 local g_FriendWhiteList = {};
 local g_FriendLoginState = {};
-local g_PauseMessages = true;
+--local g_PauseMessages = false;
 local g_PendingMessages = {};
 local g_SessionIgnoreUser = {};
 
@@ -183,14 +183,14 @@ function LKCHAT_ON_GAME_START(frame)
 	LKChat.RefreshSettings(frame);
 	PRIVATE.DisplayFPS();
 	
-	g_PauseMessages = false;
-	if #g_PendingMessages > 0 then
-		for i = 1, #g_PendingMessages do
-			local pending = g_PendingMessages[i];
-			LKChat.OnChatMessage(pending.groupBoxName, pending.size, pending.startIndex, nil);
-		end
-		g_PendingMessages = {};
-	end
+	--g_PauseMessages = false;
+	--if #g_PendingMessages > 0 then
+	--	for i = 1, #g_PendingMessages do
+	--		local pending = g_PendingMessages[i];
+	--		LKChat.OnChatMessage(pending.groupBoxName, pending.size, pending.startIndex, nil);
+	--	end
+	--	g_PendingMessages = {};
+	--end
 end
 
 function LKCHAT_ON_GAME_START_DELAY(frame)
@@ -200,7 +200,7 @@ function LKCHAT_ON_GAME_START_DELAY(frame)
 end
 
 function LKCHAT_ON_START_LOADING(frame)
-	g_PauseMessages = true;
+	--g_PauseMessages = true;
 end
 
 --function LKCHAT_ON_LOADING(frame)
@@ -585,10 +585,10 @@ function LKChat.OnRightClickMessage(frame, chatCtrl)
 end
 
 function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
-	if g_PauseMessages then
-		table.insert(g_PendingMessages, {size=size, startIndex=startIndex, groupBoxName=groupBoxName});
-		return nil;
-	end
+	--if g_PauseMessages then
+	--	table.insert(g_PendingMessages, {size=size, startIndex=startIndex, groupBoxName=groupBoxName});
+	--	return nil;
+	--end
 	if not g_MessageBoxPosition[groupBoxName] or g_MessageBoxPosition[groupBoxName].index > startIndex then
 		g_MessageBoxPosition[groupBoxName] = { top = 0, height = 0, id = -1, index = startIndex };
 	end
