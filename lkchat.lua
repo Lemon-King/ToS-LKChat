@@ -22,7 +22,7 @@ local LKChat = _G["LKChat"];
 local PRIVATE = {};
 --local L = setmetatable({ region = "kr",  = {}, }, {__index = function(k,v) return v end });
 
-LKChat._version = "Alpha v0.5c";
+LKChat._version = "Alpha v0.6";
 
 -- Constants
 local TYPE_INT = 0;
@@ -99,12 +99,7 @@ local g_UncheckedChannels = {
 	"Party",
 };
 
-local g_RegExList = {
-	"[3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.+%s*[,%.%-]+%s*c%s*[o0%(%)]-%s*[nm]", -- improved greedy spam url detection, catches nearly any url by bot spammers
-	--"[%s3vw]+[,%.%-]+%s*.*%s*[,%.%-]+%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection, modified [UNTESTED]
-	--"[%s3vw]*[,%.]%s*.*%s*[,%.]%s*c%s*[o0]%s*[nm]%s*", -- DemiImp's improved greedy spam url detection
-};
-
+local g_BotSpamTest = "^([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.+%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
 local g_BotSpamPatterns = {
 	-- find
 	{ pattern = "sell",				type = SEARCH_FIND,	weight = 1 },
@@ -545,19 +540,14 @@ end
 function LKChat.FilterMessage(text)
 	-- TODO: Normalize text
 	local lowtext = string.lower(text);
-	local doPatternCheck = false;
-	for i = 1, #g_RegExList do
-		if (string.match(lowtext, g_RegExList[i])) then
-			doPatternCheck = true;
-		end
-	end
+	local url, body = string.match(lowtext, g_BotSpamTest);
 	
 	local threshold = 2
 	local weight = 0;
-	if doPatternCheck then
+	if url then
 		for i = 1, #g_BotSpamPatterns do
 			local bsp = g_BotSpamPatterns[i];
-			if (string[bsp.type](lowtext, bsp.pattern)) then
+			if (string[bsp.type](body, bsp.pattern)) then
 				weight = weight + bsp.weight;
 				if weight >= threshold then
 					return true;
