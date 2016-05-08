@@ -600,7 +600,7 @@ function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
 			local msg = PRIVATE.FormatMessage(message, groupBoxName);
 			if not g_SessionIgnoreUser[msg.name] then
 				-- Message Filter
-				if (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(message.type)) and not PRIVATE.isFriend(name) and msg.name ~= g_PlayerFamilyName then
+				if (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(msg.type)) and not PRIVATE.isFriend(msg.name) and msg.name ~= g_PlayerFamilyName then
 					if LKChat.FilterMessage(msg.text) then
 						g_SessionIgnoreUser[msg.name] = true;
 						PRIVATE.AntiSpam_BlockActions(msg);
