@@ -99,7 +99,7 @@ local g_UncheckedChannels = {
 	"Party",
 };
 
-local g_BotSpamTest = "^([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.+%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
+local g_BotSpamTest = "([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.+%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
 local g_BotSpamPatterns = {
 	-- find
 	{ pattern = "sell",				type = SEARCH_FIND,	weight = 1 },
@@ -148,6 +148,7 @@ local g_Settings = {};
 local g_RegisteredSlashCommands = {};
 local g_FriendWhiteList = {};
 local g_FriendLoginState = {};
+local g_GuildWhiteList = {};
 --local g_PauseMessages = false;
 local g_PendingMessages = {};
 local g_SessionIgnoreUser = {};
@@ -163,6 +164,9 @@ function LKCHAT_ON_INIT(addon, frame)
 		addon:RegisterMsg("GAME_START_3SEC", "LKCHAT_ON_GAME_START_DELAY");
 		--addon:RegisterMsg('START_LOADING', 'LKCHAT_ON_START_LOADING');
 		--addon:RegisterMsg('START_LOADING', "LKCHAT_ON_LOADING");
+		addon:RegisterMsg("MYPC_GUILD_JOIN", "LKCHAT_ON_GUILD_INFO_UPDATE");
+		addon:RegisterMsg("GUILD_EVENT_UPDATE", "LKCHAT_ON_GUILD_INFO_UPDATE");
+		addon:RegisterOpenOnlyMsg("GUILD_INFO_UPDATE", "LKCHAT_ON_GUILD_INFO_UPDATE");
 		addon:RegisterOpenOnlyMsg("ADD_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("REMOVE_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("UPDATE_FRIEND_LIST", "LKCHAT_ON_UPDATE_FRIENDLIST");
@@ -209,6 +213,10 @@ function LKCHAT_ON_OPEN(frame)
 end
 
 function LKCHAT_ON_CLOSE(frame)
+
+end
+
+function LKCHAT_ON_GUILD_INFO_UPDATE()
 
 end
 
@@ -542,9 +550,9 @@ function LKChat.FilterMessage(text)
 	local lowtext = string.lower(text);
 	local url, body = string.match(lowtext, g_BotSpamTest);
 	
-	local threshold = 2
-	local weight = 0;
 	if url then
+		local weight = 0;
+		local threshold = 2
 		for i = 1, #g_BotSpamPatterns do
 			local bsp = g_BotSpamPatterns[i];
 			if (string[bsp.type](body, bsp.pattern)) then
