@@ -101,28 +101,29 @@ local g_UncheckedChannels = {
 
 local g_BotSpamTest = "([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.+%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
 local g_BotSpamPatterns = {
-	-- find
-	{ pattern = "sell",				type = SEARCH_FIND,	weight = 1 },
-	{ pattern = "usd",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "eur",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "daum",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "cheap",			type = SEARCH_FIND, weight = 1 },
-	{ pattern = "fast",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "f@st",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "offer",			type = SEARCH_FIND, weight = 1 },
-	{ pattern = "qq",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "delivery",			type = SEARCH_FIND, weight = 1 },
-	{ pattern = "silver",			type = SEARCH_FIND, weight = 1 },
-	{ pattern = "s1lver",			type = SEARCH_FIND, weight = 1 },
-	{ pattern = "gold",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "g0ld",				type = SEARCH_FIND, weight = 1 },
-	{ pattern = "powerleveling",	type = SEARCH_FIND, weight = 1 },
-	{ pattern = "p0wer1eve1ing",	type = SEARCH_FIND, weight = 1 },
-	{ pattern = "mmoceo",			type = SEARCH_FIND, weight = 1 },
-	{ pattern = "m-m-o-c-e-o",		type = SEARCH_FIND, weight = 2 },
-	
 	-- match
-	{ pattern = "%d+k=%d+%$",		type = SEARCH_MATCH, weight = 2 },	-- 100k=1$
+	{ pattern = "%d+k%s*=%s*%d+%$",			type = SEARCH_MATCH, weight = 2 },	-- 100k=1$
+	{ pattern = "p[o0]wer[1l]eve[1l]ing",	type = SEARCH_MATCH, weight = 2 },
+	{ pattern = "m.?m.?[o0].?c.?e.?[o0]",	type = SEARCH_MATCH, weight = 2 },
+	{ pattern = "m.?m.?[o0].?t.?a.?n.?k",	type = SEARCH_MATCH, weight = 2 },
+	{ pattern = "h[o0]ag[o0][1l]d",			type = SEARCH_MATCH, weight = 2 },
+	{ pattern = "pveg[o0][1l]d",			type = SEARCH_MATCH, weight = 2 },
+	{ pattern = "f[a@]st",					type = SEARCH_MATCH, weight = 1 },
+	{ pattern = "s[i1][1l]ver",				type = SEARCH_MATCH, weight = 1 },
+	{ pattern = "g[o0][1l]d",				type = SEARCH_MATCH, weight = 1 },
+
+	-- find
+	{ pattern = "seagm",					type = SEARCH_FIND, weight = 2 },
+	{ pattern = "sell",						type = SEARCH_FIND,	weight = 1 },
+	{ pattern = "usd",						type = SEARCH_FIND, weight = 1 },
+	{ pattern = "eur",						type = SEARCH_FIND, weight = 1 },
+	{ pattern = "daum",						type = SEARCH_FIND, weight = 1 },
+	{ pattern = "cheap",					type = SEARCH_FIND, weight = 1 },
+	{ pattern = "offer",					type = SEARCH_FIND, weight = 1 },
+	{ pattern = "delivery",					type = SEARCH_FIND, weight = 1 },
+	{ pattern = "qq",						type = SEARCH_FIND, weight = 1 },
+	{ pattern = "cover",					type = SEARCH_FIND, weight = 1 },
+	{ pattern = "commission",				type = SEARCH_FIND, weight = 1 },
 };
 
 -- Lookup table
@@ -563,6 +564,8 @@ function LKChat.FilterMessage(text)
 			end
 		end
 	end
+
+	return false;
 end
 
 function LKChat.OnRightClickMessage(frame, chatCtrl)
