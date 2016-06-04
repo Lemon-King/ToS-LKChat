@@ -1,0 +1,16 @@
+[
+	{
+		"name" : "LK Chat",
+		"file" : "lkchat",
+		"extension" : "ipf",
+		"releaseTag" : "v0.6a",
+		"fileVersion" : "v0.6a",
+		"unicode" : "👑",
+		"description" : "Chat in peace! Automatically report bots and block spam.",
+		"tags" : [
+			"chat",
+			"spam",
+			"bots"
+		]
+	}
+]
