@@ -17,12 +17,12 @@ if not _G["math"].clamp then
 end
 
 -- Globals
-_G["LKChat"] = {};
+_G["LKChat"] = { hasLoaded = false };
 local LKChat = _G["LKChat"];
 local PRIVATE = {};
 --local L = setmetatable({ region = "kr",  = {}, }, {__index = function(k,v) return v end });
 
-LKChat._version = "Alpha v0.6";
+LKChat._version = "Alpha v0.6a";
 
 -- Constants
 local TYPE_INT = 0;
@@ -93,37 +93,45 @@ local g_DefaultChatColors = {
 	},
 };
 
+local g_ChannelWatch = {
+	Normal = true,
+	Whisper = false,
+	Shout = true,
+	Party = false,
+	Guild = false,
+	System = false,
+};
+
 local g_UncheckedChannels = {
 	"System",
 	"Guild",
 	"Party",
 };
 
-local g_BotSpamTest = "^([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.+%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
+local g_BotSpamTest = "([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.-%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
 local g_BotSpamPatterns = {
-	-- match
-	{ pattern = "%d+k%s*=%s*%d+%$",			type = SEARCH_MATCH, weight = 2 },	-- 100k=1$
-	{ pattern = "p[o0]wer[1l]eve[1l]ing",	type = SEARCH_MATCH, weight = 2 },
-	{ pattern = "m.?m.?[o0].?c.?e.?[o0]",	type = SEARCH_MATCH, weight = 2 },
-	{ pattern = "m.?m.?[o0].?t.?a.?n.?k",	type = SEARCH_MATCH, weight = 2 },
-	{ pattern = "h[o0]ag[o0][1l]d",			type = SEARCH_MATCH, weight = 2 },
-	{ pattern = "pveg[o0][1l]d",			type = SEARCH_MATCH, weight = 2 },
-	{ pattern = "f[a@]st",					type = SEARCH_MATCH, weight = 1 },
-	{ pattern = "s[i1][1l]ver",				type = SEARCH_MATCH, weight = 1 },
-	{ pattern = "g[o0][1l]d",				type = SEARCH_MATCH, weight = 1 },
-
 	-- find
-	{ pattern = "seagm",					type = SEARCH_FIND, weight = 2 },
-	{ pattern = "sell",						type = SEARCH_FIND,	weight = 1 },
-	{ pattern = "usd",						type = SEARCH_FIND, weight = 1 },
-	{ pattern = "eur",						type = SEARCH_FIND, weight = 1 },
-	{ pattern = "daum",						type = SEARCH_FIND, weight = 1 },
-	{ pattern = "cheap",					type = SEARCH_FIND, weight = 1 },
-	{ pattern = "offer",					type = SEARCH_FIND, weight = 1 },
-	{ pattern = "delivery",					type = SEARCH_FIND, weight = 1 },
-	{ pattern = "qq",						type = SEARCH_FIND, weight = 1 },
-	{ pattern = "cover",					type = SEARCH_FIND, weight = 1 },
-	{ pattern = "commission",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "sell",				type = SEARCH_FIND,	weight = 1 },
+	{ pattern = "usd",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "eur",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "daum",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "cheap",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "fast",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "f@st",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "offer",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "qq",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "delivery",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "silver",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "s1lver",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "gold",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "g0ld",				type = SEARCH_FIND, weight = 1 },
+	{ pattern = "powerleveling",	type = SEARCH_FIND, weight = 1 },
+	{ pattern = "p0wer1eve1ing",	type = SEARCH_FIND, weight = 1 },
+	{ pattern = "mmoceo",			type = SEARCH_FIND, weight = 1 },
+	{ pattern = "m-m-o-c-e-o",		type = SEARCH_FIND, weight = 2 },
+	
+	-- match
+	{ pattern = "%d+k=%d+%$",		type = SEARCH_MATCH, weight = 2 },	-- 100k=1$
 };
 
 -- Lookup table
@@ -138,6 +146,7 @@ local g_UserKeySettings = {
 	["LKCHAT_ANTISPAM"]			= { name = "AntiSpam", type = TYPE_INT, default = 1, min = 0, max = 1 },
 	["LKCHAT_ANTISPAMNOTICE"]	= { name = "AntiSpamNotice", type = TYPE_INT, default = 1, min = 0, max = 1 },
 	["LKCHAT_AUTOREPORT"]		= { name = "ReportAutoBot", type = TYPE_INT, default = 0, min = 0, max = 1 },
+	["LKCHAT_BLOCKREASON"]		= { name = "BlockReason", type = TYPE_INT, default = 1, min = 0, max = 1 },
 	
 	["LKCHAT_DISPLAYFPS"]		= { name = "DisplayFPS", type = TYPE_INT, default = 1, min = 0, max = 1 },
 };
@@ -149,11 +158,11 @@ local g_Settings = {};
 local g_RegisteredSlashCommands = {};
 local g_FriendWhiteList = {};
 local g_FriendLoginState = {};
+local g_GuildWhiteList = {};
 --local g_PauseMessages = false;
 local g_PendingMessages = {};
-local g_SessionIgnoreUser = {};
+local g_SessionIgnoreMessage = {};
 
-local g_LastChatIndex = 0;
 local g_MessageBoxPosition = {};	-- used with chat generation
 
 -- UI Events
@@ -164,6 +173,9 @@ function LKCHAT_ON_INIT(addon, frame)
 		addon:RegisterMsg("GAME_START_3SEC", "LKCHAT_ON_GAME_START_DELAY");
 		--addon:RegisterMsg('START_LOADING', 'LKCHAT_ON_START_LOADING');
 		--addon:RegisterMsg('START_LOADING', "LKCHAT_ON_LOADING");
+		addon:RegisterMsg("MYPC_GUILD_JOIN", "LKCHAT_ON_GUILD_INFO_UPDATE");
+		addon:RegisterMsg("GUILD_EVENT_UPDATE", "LKCHAT_ON_GUILD_INFO_UPDATE");
+		addon:RegisterOpenOnlyMsg("GUILD_INFO_UPDATE", "LKCHAT_ON_GUILD_INFO_UPDATE");
 		addon:RegisterOpenOnlyMsg("ADD_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("REMOVE_FRIEND", "LKCHAT_ON_UPDATE_FRIENDLIST");
 		addon:RegisterOpenOnlyMsg("UPDATE_FRIEND_LIST", "LKCHAT_ON_UPDATE_FRIENDLIST");
@@ -211,6 +223,10 @@ end
 
 function LKCHAT_ON_CLOSE(frame)
 
+end
+
+function LKCHAT_ON_GUILD_INFO_UPDATE()
+	PRIVATE.RefreshGuildMembers();
 end
 
 function LKCHAT_ON_UPDATE_FRIENDLIST()
@@ -287,6 +303,13 @@ function LKCHAT_ON_CHECKBOX_AUTOREPORT(frame, obj, argStr, argNum)
 	LKChat.SetConfigByKey("LKCHAT_AUTOREPORT", isChecked);
 end
 
+function LKCHAT_ON_CHECKBOX_BLOCKREASON(frame, obj, argStr, argNum)
+	local w_CHECKBOX = tolua.cast(obj, "ui::CCheckBox");
+	
+	local isChecked = w_CHECKBOX:IsChecked();
+	LKChat.SetConfigByKey("LKCHAT_BLOCKREASON", isChecked);
+end
+
 
 function LKCHAT_ON_CHECKBOX_DISPLAYFPS(frame, obj, argStr, argNum)
 	local w_CHECKBOX = tolua.cast(obj, "ui::CCheckBox");
@@ -305,9 +328,9 @@ function LKChat.OnInit(frame)
 	PRIVATE.SetVersion(frame);
 
 	LKChat.RefreshSettings(frame);
-	
+
 	LKChat.RegisterSlashCommands();
-	
+
 	LKChat.hasLoaded = true;
 	printc(string.format("LKChat Loaded:{nl}Hello %s.", g_PlayerFamilyName));
 end
@@ -400,7 +423,11 @@ function LKChat.InitializeSettings(frame)
 	
 	-- Auto Report
 	local w_CHECK_AUTOREPORT = GET_CHILD(w_GROUP_ANTISPAM, "check_ReportSpamBots", "ui::CCheckBox");
-	w_CHECK_AUTOREPORT:SetCheck(LKChat.GetConfigByKey("LKCHAT_AUTOREPORT"));		
+	w_CHECK_AUTOREPORT:SetCheck(LKChat.GetConfigByKey("LKCHAT_AUTOREPORT"));
+	
+	-- Display Reason
+	local w_CHECK_DISPLAYREASON = GET_CHILD(w_GROUP_ANTISPAM, "check_BlockReason", "ui::CCheckBox");
+	w_CHECK_DISPLAYREASON:SetCheck(LKChat.GetConfigByKey("LKCHAT_BLOCKREASON"));		
 	
 	
 	-- Misc
@@ -540,12 +567,11 @@ end
 -- Text is set to lowercase for easier detection
 function LKChat.FilterMessage(text)
 	-- TODO: Normalize text
-	local lowtext = string.lower(text);
-	local url, body = string.match(lowtext, g_BotSpamTest);
+	local url, body = string.match(string.lower(text), g_BotSpamTest);
 	
-	local threshold = 2
-	local weight = 0;
 	if url then
+		local weight = 0;
+		local threshold = 2
 		for i = 1, #g_BotSpamPatterns do
 			local bsp = g_BotSpamPatterns[i];
 			if (string[bsp.type](body, bsp.pattern)) then
@@ -556,7 +582,7 @@ function LKChat.FilterMessage(text)
 			end
 		end
 	end
-
+	
 	return false;
 end
 
@@ -591,11 +617,11 @@ function LKChat.OnChatMessage(groupBoxName, size, startIndex, frameName)
 		local message = session.ui.GetChatMsgClusterInfo(groupBoxName, i);
 		if message then
 			local msg = PRIVATE.FormatMessage(message, groupBoxName);
-			if not g_SessionIgnoreUser[msg.name] then
+			if not g_SessionIgnoreMessage[msg.id] then
 				-- Message Filter
-				if (PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and LKChat.IsChannelUnchecked(msg.type)) and not PRIVATE.isFriend(msg.name) and msg.name ~= g_PlayerFamilyName then
+				if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAM")) and g_ChannelWatch[msg.type] and not PRIVATE.isFriendOrGuildMember(msg.name) and msg.name ~= g_PlayerFamilyName then
 					if LKChat.FilterMessage(msg.text) then
-						g_SessionIgnoreUser[msg.name] = true;
+						g_SessionIgnoreMessage[msg.id] = true;
 						PRIVATE.AntiSpam_BlockActions(msg);
 						if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_ANTISPAMNOTICE")) then
 							msg = PRIVATE.SpamRemoval_Notice(msg);
@@ -665,9 +691,9 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 	
 	local w_CHATCONTROL = w_MESSAGEBOX:CreateOrGetControlSet(chatCtrlName, "cluster_"..message.id, horzGravity, ui.TOP, marginLeft, top, marginRight, 0);
 	w_CHATCONTROL:EnableHitTest(1);
-	w_CHATCONTROL:SetUserValue("id", message.id);
 	w_CHATCONTROL:SetOffset(margin, top);
-	if message.type ~= "System" or message.type ~= "SpamNotice" then
+	w_CHATCONTROL:SetUserValue("type", message.type);
+	if message.type ~= "System" and message.type ~= "SpamNotice" then
 		if message.isGM then
 			colorGroup = "GM";
 		end
@@ -699,6 +725,10 @@ function LKChat.DrawBubbleMessage(w_MESSAGEBOX, message, top)
 
 	w_TIMEBOX:ShowWindow(g_Settings.TimeStamp);
 	w_TIME:SetTextByKey("time", message.time);
+
+	--if message.reason then
+	--	w_CHATCONTROL:SetTextTooltip(message.reason);
+	--end
 	
 	if message.unreadCount <= 0 then
 		w_UNREAD:ShowWindow(0);
@@ -847,6 +877,9 @@ function PRIVATE.SpamRemoval_Notice(msg)
 	else
 		blockMsg = string.format("User %s has been blocked.", msg.name);
 	end
+	if PRIVATE.IntToBool(LKChat.GetConfigByKey("LKCHAT_BLOCKREASON")) then
+		blockMsg = blockMsg .. "{nl}Reason:{nl}"..msg.text;
+	end
 
 	local notice = {
 		id = 9000 + math.random(),
@@ -856,6 +889,7 @@ function PRIVATE.SpamRemoval_Notice(msg)
 		type = "SpamNotice",
 		room = msg.room,
 		text = blockMsg,
+		reason = msg.text,
 		unreadCount = 0,
 		isGM = false,
 		isNotice = true,
@@ -911,8 +945,21 @@ function PRIVATE.ClearBlocked()
 	end
 end
 
-function PRIVATE.isFriend(name)
-	return g_FriendWhiteList[name];
+function PRIVATE.RefreshGuildMembers()
+	local list = session.party.GetPartyMemberList(PARTY_GUILD);
+	local count = list:Count();
+	
+	g_GuildWhiteList = {};
+	for i = 0 , count - 1 do
+		local partyMemberInfo = list:Element(i);
+		local name = partyMemberInfo:GetName();
+		
+		g_GuildWhiteList[name] = true;
+	end
+end
+
+function PRIVATE.isFriendOrGuildMember(name)
+	return g_FriendWhiteList[name] or g_GuildWhiteList[name];
 end
 
 function PRIVATE.RefreshFriendList()
