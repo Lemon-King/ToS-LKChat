@@ -108,7 +108,7 @@ local g_UncheckedChannels = {
 	"Party",
 };
 
-local g_BotSpamTest = "([3vw]-%s*[vw]-%s*[vw]-%s*[vw]-%s*[,%.%-]+%s*.-%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
+local g_BotSpamTest = "(([vw]-%s*)+[,%.%-]+%s*.-%s*[,%.%-]+%s*c[_%s]-[o0%(%)]-[_%s]-[nm])(.*)";
 local g_BotSpamPatterns = {
 	-- find
 	{ pattern = "sell",				type = SEARCH_FIND,	weight = 1 },
@@ -132,6 +132,8 @@ local g_BotSpamPatterns = {
 	
 	-- match
 	{ pattern = "%d+k=%d+%$",		type = SEARCH_MATCH, weight = 2 },	-- 100k=1$
+	{ pattern = "m.?m.?[o0].?c.?e.?[o0]",		type = SEARCH_MATCH, weight = 2 },
+	{ pattern = "m.?m.?[o0].?t.?a.?n.?k",		type = SEARCH_MATCH, weight = 2 }
 };
 
 -- Lookup table
